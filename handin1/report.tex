@@ -168,16 +168,16 @@ The plots for the function can be seen on Figure \ref{plt2}.
 \subsection{First Derivative}
 I find the gradient by applying the chain rule:
 \[
-\nabla f(x,y) = 
+\nabla f_2(x_1, x_2) = 
 \begin{bmatrix}
-    -400x(x_2 - x^2) - 2(1-x_1) \\
-    200(x_2 - x^2)            \\
+    -400x(x_2 - x_1^2) - 2(1-x_1) \\
+    200(x_2 - x_1^2)            \\
 \end{bmatrix}
 \]
 \subsection{Second Derivative}
 Then I find the Hessian matrix:
 \[
-H(x,x_2) = 
+H(x_1,x_2) = 
 \begin{bmatrix}
     1200x^2 - 400x_2 + 2 & -400x_1     \\
     -400x_1 & 200
@@ -246,9 +246,35 @@ The plots for the function can be seen on Figure \ref{plt3}.
   \label{plt3}
 \end{figure}
 
+\subsection{First Derivative}
+
+\[
+\nabla f_3(x_1, x_2) = 
+\begin{bmatrix}
+  (2x_1)/(\epsilon + x_1^2 + \alpha x_2^2)\\
+  (2\alpha x_2)/(\epsilon + x_1^2 + \alpha x_2^2)\\
+\end{bmatrix}
+\]
+
+
+\subsection{Second Derivative}
+\label{subsec:label}
+\[
+H(x_1,x_2) = 
+\begin{bmatrix}
+  (2 (\epsilon - x_1^2 + \alpha x_2^2))/(\epsilon + x_1^2 + \alpha x_2^2)^2
+  &
+  -(4 \alpha x_1 x_2)/(\epsilon + x_1^2 + \alpha x_2^2)^2  \\
+  -(4 \alpha x_1 x_2)/(\epsilon + x_1^2 + \alpha x_2^2)^2
+  &
+  (2 \alpha (\epsilon + x_1^2 - \alpha x_2^2))/(\epsilon + x_1^2 + \alpha x_2^2)^2
+\end{bmatrix}
+\]
+
+
 \section{Attractive Sector Functions}
 \label{sec:attractive}
-\subsection{First function}
+\subsection{First Function}
 The first Attractive Sector function is given by:
 \[
 f_{4}(x)=\sum_{i=1}^{d} h\left(x_{i}\right)+100 \cdot h\left(-x_{i}\right)
@@ -274,7 +300,27 @@ The plots for the function can be seen on Figure \ref{plt4}.
   \label{plt4}
 \end{figure}
 
-\subsection{Second function}
+\subsection{First Derivative of the First Function}
+\[
+\nabla f_4(x_1, x_2) = 
+\begin{bmatrix}
+  (100 + e^{q x_1})/(1 + e^{q x_1}) \\
+  (100 + e^{q x_2})/(1 + e^{q x_2})
+\end{bmatrix}
+\]
+\subsection{Second Derivative of the First Function}
+This function is similar to the Ellipsoid function, since it is also a sum of
+independent functions. Hence, we can use the property that we have shown in
+Section \ref{sec:ellipse}.
+\[
+H(x_1,x_2) = 
+\begin{bmatrix}
+-(99 e^{q x_1} q)/(1 + e^{q x_1})^2 & 0 \\
+0 & -(99 e^{q x_2} q)/(1 + e^{q x_2})^2 \\
+\end{bmatrix}
+\]
+
+\subsection{Second Function}
 The second Attractive Sector function is then given by:
 \[
 f_{4}(x)=\sum_{i=1}^{d} h\left(x_{i}\right)+100 \cdot h\left(-x_{i}\right)
@@ -297,7 +343,7 @@ The plots for the function can be seen on Figure \ref{plt5}.
   \label{plt5}
 \end{figure}
 
-\subsection{Overflow in the exponential}
+\subsection{Overflow in the Exponential Function}
 Computation of h-function can be troublesome, since the exponential function can
 overflow. However this can be mitigated by replacing the function with an equivalent.
 I will prove that following property holds using proof by case:
