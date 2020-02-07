@@ -51,6 +51,7 @@ the previous year.
 
 \part{Theory}
 \section{}
+\label{t1}
 The function is given by:
 \[
 f(x)=\sum_{i=1}^{N} g_{i}\left(x_{i}\right)
@@ -64,8 +65,10 @@ entries where $j=i$. Therefore we have that the Hessian is a diagonal matrix wit
 (H f(x))_{i  i}=g_{i}^{\prime \prime}\left(x_{i}\right)
 \]
 \section{}
+\label{t2}
 
 \section{}
+\label{t3}
 The Rosenbrock function is given by:
 $$
 f(x,y) = 100(y - x^2)^2 + (1 - x)^2
@@ -123,9 +126,74 @@ Since $\frac{df}{dxdy} = 802 > 0$ and the determinant is positive, I conclude th
 $H(1,1)$ is positive definite, and $(1,1)^T$ is the only local minimizer of the
 2D Rosenbrock function.
 
-\section{}
 
 \section{}
+\label{t4}
+The Ellipsoid function is given by:
+\[
+f_{1}(x)=\sum_{i=1}^{d} \alpha^{\frac{i-1}{d-1}} x_{i}^{2}, \alpha=1000
+\]
+As required, I reduce the problem to two dimensions and find the gradient:
+\[
+\nabla f_1(x_1,x_2) = 
+\begin{bmatrix}
+    2 x_1\\
+    2\alpha x_2\\
+\end{bmatrix}
+\]
+Then I find the Hessian matrix. I know from Section \ref{t1}, that
+Hessian is a diagonal matrix with 
+\[
+(H f(x))_{i  i}=g_{i}^{\prime \prime}\left(x_{i}\right)
+\]
+Hence:
+\[
+H(x_1, x_2) = 
+\begin{bmatrix}
+    2 & 0     \\
+    0 & 2\alpha
+\end{bmatrix}
+\]
+I can then solve a system of equations in order to find the stationary points:
+\begin{align*}
+\begin{bmatrix}
+    2 x_1 \\
+    2\alpha x_2 \\
+\end{bmatrix}
+&=
+\begin{bmatrix}
+    0 \\
+    0    
+\end{bmatrix}\\
+\begin{bmatrix}
+    x_1 \\
+    x_2 \\
+\end{bmatrix}
+&=
+\begin{bmatrix}
+    0 \\
+    0 \\
+\end{bmatrix}
+\end{align*}
+The system of equations has only one solution, hence $(0,0)^T$ is the only
+stationary point. I then determine the type of the stationary point by 
+finding the determinant of the hessian matrix:
+
+\[
+det(H(0,0)) = 
+det\left(\begin{bmatrix}
+    2 & 0     \\
+    0 & 2000
+\end{bmatrix}\right)
+= 2002 > 0
+\]
+Determinant is positive, hence I conclude that
+$H(1,1)$ is positive definite, and $(0,0)^T$ is the only local minimizer of the
+Ellipsoid function.
+
+
+\section{}
+\label{t5}
 I will prove following using proof by case:
 \[
 \log (1+\exp (x))=\log (1+\exp (-|x|))+\max (x, 0)
@@ -152,8 +220,8 @@ when $x$ is a large number, such as $10^8$ in the Attractive-Sector function.
 The value of $e^{x}$ would be a huge number that is much larger than
 $10^{32}$ or even $10^{64}$. Therefore, it can not fit in any type of CPU
 registers and would result in a overflow. $-|x| > 0$ for all real values of $x$,
-hence $e^{-|x|}$ would become a very small number for high values of $x$, which
-would eliminate the overflow problem.
+hence $e^{-|x|}$ would become a very small number for high values of $x$ and
+would be rounded to zero, which would eliminate the overflow problem.
 
 
 %% \begin{figure}
