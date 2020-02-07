@@ -164,6 +164,7 @@ The plots for the function can be seen on Figure \ref{plt2}.
   \caption{Rosenbrock Function}
   \label{plt2}
 \end{figure}
+
 \subsection{First Derivative}
 I find the gradient by applying the chain rule:
 \[
@@ -223,11 +224,82 @@ $H(1,1)$ is positive definite, and $(1,1)^T$ is the only local minimizer of the
 
 \section{Log-Ellipsoid Function}
 \label{sec:log-ellipsoid}
+The Log-Ellipsoid function is given by:
+\[
+f_{3}(x)=\log \left(\epsilon+f_{1}(x)\right), \epsilon=10^{-16}
+\]
+The plots for the function can be seen on Figure \ref{plt3}.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{imgs/plt31}
+    \caption{Surface plot}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{imgs/plt32}
+    \caption{Contour plot}
+  \end{subfigure}
+  \caption{Log-Ellipsoid Function}
+  \label{plt3}
+\end{figure}
 
 \section{Attractive Sector Functions}
 \label{sec:attractive}
+\subsection{First function}
+The first Attractive Sector function is given by:
+\[
+f_{4}(x)=\sum_{i=1}^{d} h\left(x_{i}\right)+100 \cdot h\left(-x_{i}\right)
+\]
+where:
+\[
+h(x)=\frac{\log (1+\exp (q \cdot x))}{q}, q=10^{8}
+\]
+The plots for the function can be seen on Figure \ref{plt4}.
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{imgs/plt41}
+    \caption{Surface plot}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{imgs/plt42}
+    \caption{Contour plot}
+  \end{subfigure}
+  \caption{First Attractive Sector Function}
+  \label{plt4}
+\end{figure}
+
+\subsection{Second function}
+The second Attractive Sector function is then given by:
+\[
+f_{4}(x)=\sum_{i=1}^{d} h\left(x_{i}\right)+100 \cdot h\left(-x_{i}\right)
+\]
+where $h(x)$ is the same as in the first version.
+The plots for the function can be seen on Figure \ref{plt5}.
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{imgs/plt51}
+    \caption{Surface plot}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{imgs/plt52}
+    \caption{Contour plot}
+  \end{subfigure}
+  \caption{Second Attractive Sector Function}
+  \label{plt5}
+\end{figure}
 
 \subsection{Overflow in the exponential}
+Computation of h-function can be troublesome, since the exponential function can
+overflow. However this can be mitigated by replacing the function with an equivalent.
 I will prove that following property holds using proof by case:
 \[
 \log (1+\exp (x))=\log (1+\exp (-|x|))+\max (x, 0)

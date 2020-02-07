@@ -25,12 +25,12 @@ class Case(ABC):
         X_space, Y_space = np.meshgrid(X,Y)
         return X_space,Y_space,Z, grid
 
-    def plot_contour(self, x_min, x_max, y_min, y_max, file_name, n_ticks= 1000, imshow=False, levels=None):
+    def plot_contour(self, x_min, x_max, y_min, y_max, file_name, n_ticks= 1000, imshow=True, levels=None):
         print("Plotting countour for",type(self).__name__)
         X, Y, Z, grid = self.__gen_data(x_min, x_max, y_min, y_max, n_ticks)
         fig, ax = plt.subplots()
         if imshow:
-            IM = ax.imshow(Z, extent=(x_min, x_max, y_min, y_max), aspect="auto")
+            IM = ax.imshow(Z, extent=(x_min, x_max, y_min, y_max), aspect="auto", origin='lower')
             CS = ax.contour(Z, cmap="Accent", levels=levels, extent=(x_min, x_max, y_min, y_max))
             ax.clabel(CS, inline=1, fontsize=10)
             fig.colorbar(IM)
@@ -134,8 +134,9 @@ class Rosenbrock(Case):
 
 
 class LogEllipsoid(Ellipsoid):
-    def __init(self, eps=10 ** (-16)):
+    def __init__(self, alpha=1000, eps=(10 ** (-16))):
         self.eps = eps
+        self.alpha = alpha
 
     def apply(self, x):
         f1_v = super().apply(x)
@@ -174,8 +175,8 @@ class AttractiveSector1(AttractiveSector):
 
 class AttractiveSector2(AttractiveSector):
     def apply(self, x):
-        h = self.__apply_h(x)
-        h_m = self.__apply_h(-x)
+        h = self.apply_h(x)
+        h_m = self.apply_h(-x)
         return np.sum(h**2 + 100 * h_m**2, axis=1)
 
     def derivative(self, x):
@@ -185,28 +186,37 @@ class AttractiveSector2(AttractiveSector):
         raise NotImplementedError("Not implemented yet")
 
 
-
 def main():
     ell = Ellipsoid()
     ell.plot_surface(-100, 100, -10, 10, "plt11.png")
-    ell.plot_contour(-100, 100, -10, 10, "plt12.png", imshow=True,
+    ell.plot_contour(-100, 100, -10, 10, "plt12.png",
                      levels=[0.1, 1, 10, 100, 1000, 10000, 25000, 50000, 100000])
 
     rose = Rosenbrock()
     rose.plot_surface(-2, 2, -1, 3, "plt21.png")
-    rose.plot_contour(-2, 2, -1, 3, "plt22.png", imshow=True,
+    rose.plot_contour(-2, 2, -1, 3, "plt22.png",
                       levels=[1, 10, 100, 500, 1000, 10000, 25000])
 
-
-    # log_ell = LogEllipsoid()
-    # print(log_ell.derivative(np.array([[1,2], [3,4], [5,6]])))
-    # log_ell.plot_surface(-100, 100, -10, 10, 1000)
-    # log_ell.plot_contour(-100, 100, -10, 10, 1000)
+    log_ell = LogEllipsoid()
+    log_ell.plot_surface(-100, 100, -10, 10, "plt31.png")
+    log_ell.plot_contour(-100, 100, -10, 10, "plt32.png",
+                         levels=10)
 
     # att_sec1 = AttractiveSector1()
-    # att_sec1.plot_contour(-5, 5, -5, 5, imshow=False)
-    # att_sec1.plot_surface(-100, 100, -100, 100)
-    # att_sec1.plot_contour_3d(-100, 100, -100, 100)
+    # att_sec1.plot_surface(-50, 50, -50, 50, "plt41.png")
+    # att_sec1.plot_contour(-50, 50, -50, 50, "plt42.png")
+
+    # att_sec2 = AttractiveSector2()
+    # att_sec2.plot_surface(-50, 50, -50, 50, "plt51.png")
+    # att_sec2.plot_contour(-50, 50, -50, 50, "plt52.png")
+    att_sec1 = AttractiveSector1()
+    att_sec1.plot_surface(-5, 5, -5, 5, "plt41.png")
+    att_sec1.plot_contour(-5, 5, -5, 5, "plt42.png")
+
+    att_sec2 = AttractiveSector2()
+    att_sec2.plot_surface(-5, 5, -5, 5, "plt51.png")
+    att_sec2.plot_contour(-5, 5, -5, 5, "plt52.png")
+
 
 if __name__ == "__main__":
     main()
