@@ -25,35 +25,45 @@ class Case(ABC):
         X_space, Y_space = np.meshgrid(X,Y)
         return X_space,Y_space,Z, grid
 
-    def plot_contour(self, x_min, x_max, y_min, y_max, n_ticks= 1000, imshow=False):
+    def plot_contour(self, x_min, x_max, y_min, y_max, file_name, n_ticks= 1000, imshow=False, levels=None):
+        print("Plotting countour for",type(self).__name__)
         X, Y, Z, grid = self.__gen_data(x_min, x_max, y_min, y_max, n_ticks)
+        fig, ax = plt.subplots()
         if imshow:
-            plt.imshow(Z, extent=(x_min, x_max, y_min, y_max), aspect="auto")
-            plt.contour(Z, cmap="Accent", extent=(x_min, x_max, y_min, y_max))
+            IM = ax.imshow(Z, extent=(x_min, x_max, y_min, y_max), aspect="auto")
+            CS = ax.contour(Z, cmap="Accent", levels=levels, extent=(x_min, x_max, y_min, y_max))
+            ax.clabel(CS, inline=1, fontsize=10)
+            fig.colorbar(IM)
         else:
-            # plt.contour(X, Y, Z)
-            grad = self.derivative(grid)
-            plt.quiver(X,Y, (grad[:,0], grad[:,1]))
-        plt.show()
+            ax.contour(X, Y, Z,cmap="RdBu_r", levels=levels)
 
-    def plot_contour_3d(self, x_min, x_max, y_min, y_max, n_ticks=1000):
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        plt.savefig(file_name)
+        plt.clf()
+
+    def plot_contour_3d(self, x_min, x_max, y_min, y_max, file_name, n_ticks=1000):
+        print("Plotting countour3D for",type(self).__name__)
         X, Y, Z, _ = self.__gen_data(x_min, x_max, y_min, y_max, n_ticks)
         ax = plt.axes(projection="3d")
         ax.contour3D(X, Y, Z, 100, cmap="coolwarm")
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('z');
-        plt.show()
+        plt.savefig(file_name)
+        plt.clf()
 
-    def plot_surface(self, x_min, x_max, y_min, y_max, n_ticks=1000):
+    def plot_surface(self, x_min, x_max, y_min, y_max, file_name, n_ticks=1000):
+        print("Plotting surface for",type(self).__name__)
         X, Y, Z, _ = self.__gen_data(x_min, x_max, y_min, y_max, n_ticks)
         ax = plt.gca(projection="3d")
         ax.plot_surface(X, Y, Z, cmap="coolwarm")
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('z');
-        plt.show()
-
+        plt.savefig(file_name)
+        # plt.show()
+        plt.clf()
 
 class Ellipsoid(Case):
     def __init__(self, alpha=1000):
@@ -177,16 +187,15 @@ class AttractiveSector2(AttractiveSector):
 
 
 def main():
-    # ell = Ellipsoid()
-    # print(ell.hessian(np.array([[1,2], [3,4], [5,6]])))
-    # print(ell.derivative(np.array([[1,2], [3,4], [5,6]])))
-    # ell.plot_surface(-100, 100, -10, 10)
-    rose = Rosenbrock()
-    rose.plot_contour(-100, 100, -10, 10)
+    ell = Ellipsoid()
+    ell.plot_surface(-100, 100, -10, 10, "plt11.png")
+    ell.plot_contour(-100, 100, -10, 10, "plt12.png", imshow=True,
+                     levels=[0.1, 1, 10, 100, 1000, 10000, 25000, 50000, 100000])
 
-    # rose.plot_surface(-100, 100, -10, 10)
-    # rose.plot_surface(-2, 2, -1, 3)
-    # rose.plot_contour(-2, 2, -1, 3)
+    rose = Rosenbrock()
+    rose.plot_surface(-2, 2, -1, 3, "plt21.png")
+    rose.plot_contour(-2, 2, -1, 3, "plt22.png", imshow=True,
+                      levels=[1, 10, 100, 500, 1000, 10000, 25000])
 
 
     # log_ell = LogEllipsoid()

@@ -45,14 +45,44 @@
 \section*{Introduction}
 I had to retake this course due to some personal reasons.
 Hence, some of the solutions in this submission are based on my solutions from
-the previous year.
+the previous year. Furthermore, in the report, I reduce the problems to two
+dimensions. However, my implementation of all, but Rosenbrock function support
+arbitrary values of $d$.
 
-\part{Programming}
+\section{Ellipsoid Function}
+\label{sec:ellipse}
+The Ellipsoid function is given by:
+\[
+f_{1}(x)=\sum_{i=1}^{d} \alpha^{\frac{i-1}{d-1}} x_{i}^{2}, \alpha=1000
+\]
+The plots for the function can be seen on Figure \ref{plt1}.
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{imgs/plt11}
+    \caption{Surface plot}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{imgs/plt12}
+    \caption{Contour plot}
+  \end{subfigure}
+  \caption{Ellipsoid Function}
+  \label{plt1}
+\end{figure}
 
-\part{Theory}
-\section{}
-\label{t1}
-The function is given by:
+\subsection{First Derivative}
+I find the gradient:
+\[
+\nabla f_1(x_1,x_2) = 
+\begin{bmatrix}
+    2 x_1\\
+    2\alpha x_2\\
+\end{bmatrix}
+\]
+\subsection{Second Derivative}
+Then I find the Hessian matrix, but first I will consider the function:
 \[
 f(x)=\sum_{i=1}^{N} g_{i}\left(x_{i}\right)
 \]
@@ -64,89 +94,7 @@ entries where $j=i$. Therefore we have that the Hessian is a diagonal matrix wit
 \[
 (H f(x))_{i  i}=g_{i}^{\prime \prime}\left(x_{i}\right)
 \]
-\section{}
-\label{t2}
-
-\section{}
-\label{t3}
-The Rosenbrock function is given by:
-$$
-f(x,y) = 100(y - x^2)^2 + (1 - x)^2
-$$
-I find the gradient by applying the chain rule:
-\[
-\nabla f(x,y) = 
-\begin{bmatrix}
-    -400x(y - x^2) - 2(1-x) \\
-    200(y - x^2)            \\
-\end{bmatrix}
-\]
-Then I find the Hessian matrix:
-\[
-H(x,y) = 
-\begin{bmatrix}
-    1200x^2 - 400y + 2 & -400x     \\
-    -400x & 200
-\end{bmatrix}
-\]
-I can then solve a system of equations in order to find the stationary points:
-\begin{align*}
-\begin{bmatrix}
-    -400x(y - x^2) - 2(1-x) \\
-    200(y - x^2)            \\
-\end{bmatrix}
-&=
-\begin{bmatrix}
-    0 \\
-    0    
-\end{bmatrix}\\
-\begin{bmatrix}
-    x \\
-    y \\
-\end{bmatrix}
-&=
-\begin{bmatrix}
-    1 \\
-    1 \\
-\end{bmatrix}
-\end{align*}
-The system of equations has only one solution, hence $(1,1)^T$ is the only
-stationary point. I then determine the type of the stationary point by 
-finding the determinant of the hessian matrix:
-
-\[
-det(H(1,1)) = 
-det\left(\begin{bmatrix}
-    1200 - 400 + 2 & -400     \\
-    -400 & 200
-\end{bmatrix}\right)
-= 400 > 0
-\]
-Since $\frac{df}{dxdy} = 802 > 0$ and the determinant is positive, I conclude that
-$H(1,1)$ is positive definite, and $(1,1)^T$ is the only local minimizer of the
-2D Rosenbrock function.
-
-
-\section{}
-\label{t4}
-The Ellipsoid function is given by:
-\[
-f_{1}(x)=\sum_{i=1}^{d} \alpha^{\frac{i-1}{d-1}} x_{i}^{2}, \alpha=1000
-\]
-As required, I reduce the problem to two dimensions and find the gradient:
-\[
-\nabla f_1(x_1,x_2) = 
-\begin{bmatrix}
-    2 x_1\\
-    2\alpha x_2\\
-\end{bmatrix}
-\]
-Then I find the Hessian matrix. I know from Section \ref{t1}, that
-Hessian is a diagonal matrix with 
-\[
-(H f(x))_{i  i}=g_{i}^{\prime \prime}\left(x_{i}\right)
-\]
-Hence:
+I then use this notion in order to determine the Hessian:
 \[
 H(x_1, x_2) = 
 \begin{bmatrix}
@@ -154,6 +102,8 @@ H(x_1, x_2) =
     0 & 2\alpha
 \end{bmatrix}
 \]
+
+\subsection{Finding a Minimizer}
 I can then solve a system of equations in order to find the stationary points:
 \begin{align*}
 \begin{bmatrix}
@@ -185,16 +135,100 @@ det\left(\begin{bmatrix}
     2 & 0     \\
     0 & 2000
 \end{bmatrix}\right)
-= 2002 > 0
+= 4000 > 0
 \]
 Determinant is positive, hence I conclude that
 $H(1,1)$ is positive definite, and $(0,0)^T$ is the only local minimizer of the
 Ellipsoid function.
 
 
-\section{}
-\label{t5}
-I will prove following using proof by case:
+\section{Rosenbrock Function}
+\label{sec:rosenbrock}
+The Rosenbrock function is given by:
+\[
+f_2(x_1,x_2) = 100(x_2 - x_1^2)^2 + (1 - x_1)^2
+\]
+The plots for the function can be seen on Figure \ref{plt2}.
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{imgs/plt21}
+    \caption{Surface plot}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{imgs/plt22}
+    \caption{Contour plot}
+  \end{subfigure}
+  \caption{Rosenbrock Function}
+  \label{plt2}
+\end{figure}
+\subsection{First Derivative}
+I find the gradient by applying the chain rule:
+\[
+\nabla f(x,y) = 
+\begin{bmatrix}
+    -400x(x_2 - x^2) - 2(1-x_1) \\
+    200(x_2 - x^2)            \\
+\end{bmatrix}
+\]
+\subsection{Second Derivative}
+Then I find the Hessian matrix:
+\[
+H(x,x_2) = 
+\begin{bmatrix}
+    1200x^2 - 400x_2 + 2 & -400x_1     \\
+    -400x_1 & 200
+\end{bmatrix}
+\]
+
+\subsection{Finding a Minimizer}
+I can then solve a system of equations in order to find the stationary points:
+\begin{align*}
+\begin{bmatrix}
+    -400x_1(x_2 - x^2) - 2(1-x_1) \\
+    200(x_2 - x_1^2)            \\
+\end{bmatrix}
+&=
+\begin{bmatrix}
+    0 \\
+    0    
+\end{bmatrix}\\
+\begin{bmatrix}
+    x_1 \\
+    x_2 \\
+\end{bmatrix}
+&=
+\begin{bmatrix}
+    1 \\
+    1 \\
+\end{bmatrix}
+\end{align*}
+The system of equations has only one solution, hence $(1,1)^T$ is the only
+stationary point. I then determine the type of the stationary point by 
+finding the determinant of the hessian matrix:
+
+\[
+det(H(1,1)) = 
+det\left(\begin{bmatrix}
+    1200 - 400 + 2 & -400     \\
+    -400 & 200
+\end{bmatrix}\right)
+= 400 > 0
+\]
+Since $\frac{df}{dx_1dx_2} = 802 > 0$ and the determinant is positive, I conclude that
+$H(1,1)$ is positive definite, and $(1,1)^T$ is the only local minimizer of the
+2D Rosenbrock function.
+
+\section{Log-Ellipsoid Function}
+\label{sec:log-ellipsoid}
+
+\section{Attractive Sector Functions}
+\label{sec:attractive}
+
+\subsection{Overflow in the exponential}
+I will prove that following property holds using proof by case:
 \[
 \log (1+\exp (x))=\log (1+\exp (-|x|))+\max (x, 0)
 \]
