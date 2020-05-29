@@ -1,0 +1,192 @@
+\documentclass[a4paper]{article}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage[english]{babel}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+\usepackage{xcolor}
+%% \usepackage{subfigure}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{stmaryrd}
+
+\usepackage{a4wide}
+\usepackage{url}
+
+\usepackage{appendix}
+
+\graphicspath{{imgs/}} %Setting the graphicspath
+
+\lstset{
+  frame=tb,
+  language=Python,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  formfeed=newpage,
+  tabsize=4,
+  comment=[l]{\#},
+  breaklines=true,
+  morekeywords={models, lambda, forms}
+}
+
+\newcommand{\prob}[1]{\mathbb{P}\left(#1\right)}
+\newcommand{\expect}[1]{\mathbb{E}\left(#1\right)}
+\newcommand{\avg}[1]{\sum_{i=1}^{#1}X_i}
+\newcommand*{\QEDA}{\hfill\ensuremath{\blacksquare}}%
+
+\newcommand{\bt}{\textbf}
+\newcommand{\nt}{\text}
+\newcommand{\lagr}{\mathcal{L}}
+\newcommand{\isum}{\sum^\infty_}
+\newcommand{\f}{$f$}
+
+\title{\vspace{-5cm} Numerical Optimization \\ Re-exam Handin 2}
+\author{Dmitry Serykh (qwl888)}
+
+\begin{document}
+\maketitle
+\section{The Setup}
+For this assignment, I used Python and the \texttt{minimize} function from the
+\texttt{scipy.optimize}. I used the BFGS optimizer, which belongs to the family
+of quasi-Newton optimizers and has following parameters:
+\begin{itemize}
+\item \emph{maxiter} - Maximum number of iterations to perform.
+\item \emph{gtol} - Gradient norm must be less than gtol before successful termination.
+\item \emph{norm} - Order of norm
+\item \emph{eps} - Step size used when the gradient is approximated.
+\end{itemize}
+I did not use the \emph{maxiter} parameter, since the gradient magnitude is be used to determine 
+when to stop the iteration. For \emph{gtol}, I used the default value of $10^{-5}$, and $\infty$ for
+the \emph{norm}. \emph{eps} was not used, since I we have implemented a gradient
+for all five functions and we do not need to approximate it.
+For all the functions, I have used a dimensionality of two.
+
+\section{Testing protocol}
+In order to test the effectiveness of the BFGS implementation from the
+\texttt{scipy.optimize}, I came up with a testing protocol, where I use
+two measures of performance:
+\begin{itemize}
+\item The convergence plots with the number of iteration on the x-scale and the
+  Euclidean distance between the current value of $x$ and the
+  optimum. The results can be seen on Figure \ref{plt1}. I applied the low shelf
+  to the results, so anything would stop at $10^{-6}$.
+\item The number of steps until the gradient magnitude reaches $10^{-5}$. The
+  results can be seen on Figure \ref{plt2}
+\end{itemize}
+I used a random starting point taken from the uniform distribution in the
+interval between $-10$ to $10$ and repeated each optimization 100 times for both
+metrics and took the average. This was done to remove the influence of the
+starting position from the results of the optimization. I used the mean 
+to minimize the effect of the outliers,
+which is important due to the stochastic nature of the algorithm. 
+
+
+\section{Convergence Plots}
+\label{sec:conv}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{plt.png}
+  \caption{Convergence Plots for BFGS, averaged over 100 runs. Y-axis shows the
+    Euclidean distance to the optimum of each $f_1,...,f_7$ with random starting point. (log-scale) }
+  \label{plt1}
+\end{figure}
+
+\section{Number of Iterations For all Functions}
+\label{sec:label}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{hist.png}
+  \caption{Number of required iterations needed by BFGS to reach $||\nabla f|| < 10^{-5}$, averaged over 100 runs with random starting point}
+  \label{plt2}
+\end{figure}
+
+\section{Theoretical Part}
+\subsection{}
+\subsubsection{}
+Since $A \in \mathbb{R}^{d\times d}$ is invertible, $g(x) = Ax$ would constitute a linear map
+$\mathbb{R}^n \rightarrow \mathbb{R}^n$. Linear transformations preserve the
+ratios of lengths, therefore the inequality
+\[
+f(\alpha(A x)+(1-\alpha)(A y)) \leq \alpha f(A x)+(1-\alpha) f(A y), \text { for all } \alpha \in[0,1]
+\]
+Would still hold, since we know that $f$ is strictly convex and therefore:
+\[
+f(\alpha(x)+(1-\alpha)(y)) \leq \alpha f(x)+(1-\alpha) f(y), \text { for all } \alpha \in[0,1]
+\]
+\subsubsection{}
+We start by looking at an expression $x^TQx$. We know that $Q$ is symmetric
+positive definite, hence we can use Cholesky decomposition and obtain following:
+$x^TQx = x^TLL^Tx$, where $L$ is triangular matrix with positive diagonal
+values, hence invertible.\\\\
+Let $f(y) = y^Ty$, then $\nabla f(y) = 2y$ and $\nabla^2 f(y) = 2I$. $2I$ is
+PD, therefore $f(y)$ is strictly convex. Then, if we set $y=L^Tx$,we get:
+\[
+f(y) = f(Lx) = x^TLL^Tx = x^TQx
+\]
+$x^TQx$ is therefore strictly convex, since $f(x)$ is convex and 
+property from the previous subsection holds. \\\\
+This point is relevant for quadratic-based functions such as $f_1$ and $f_2$,
+where the convexity makes the optimizer converge on the optimum.
+
+\subsection{}
+\subsubsection{}
+For $d=1$:
+\begin{align*}
+f_3(x) &= \log(\epsilon + x^2) \\
+f_3'(x) &= \frac{2x}{\epsilon + x^2} \\
+f_3''(x) &= \frac{2(\epsilon - x^2)}{(\epsilon + x^2)^2}
+\end{align*}
+For $|x| < \epsilon$, $(\epsilon - x^2) > 0$, hence $f_3''(x) > 0$, and $f_3$
+would be strictly convex.
+\[
+(-f_3)''(x) = \frac{2(x^2 - \epsilon)}{(\epsilon + x^2)^2}
+\]
+Hence, for $|x| \geq \epsilon$, $-f_3''(x) \geq 0$, which means that $-f_3$ is
+convex, hence $f_3$ is concave for $|x| \geq \epsilon$.\\\\
+This could potentially be problematic if the gradient-based optimizer gets its current value of
+$x>|\epsilon|$, then it would fail finding an optimum, because it could continue
+moving in that direction for an indefinite amount of time or until the number of
+iterations reaches the predefined limit. 
+
+\section{Conclusion}
+Based on the results of application of the two performance metrics, the
+\texttt{scipy} implementation of the BFGS optimizer managed to find the minima
+of all case functions. It struggled most with the Rosenbrock function, due to its
+elongated and curved iso-level.
+
+\end{document}
+
+
+%% \begin{figure}[h]
+%%     \centering
+%%     \subfloat[3d plot]{{\includegraphics[width=6cm]{plt51.png} }}%
+%%     \qquad
+%%     \subfloat[Contour plot]{{\includegraphics[width=6cm]{plt52.png} }}%
+%%     \caption{The plots show the surface of the Attractive-Sector quadratic function}%
+%%     \label{fig:5}%
+%% \end{figure}
+
+%% \section{Convergence Plots}
+%% \label{sec:conv}
+%% \begin{figure}[H]
+%%   \centering
+%%   \begin{subfigure}[b]{\textwidth}
+%%     \centering
+%%     \includegraphics[width=\textwidth]{plt_f_1.png}
+%%     \caption{Ellipsoid Function}
+%%   \end{subfigure}
+%%   \begin{subfigure}[b]{\textwidth}
+%%     \centering
+%%     \includegraphics[width=\textwidth]{plt_f_2.png}
+%%     \caption{Rosenbrock Function}
+%%   \end{subfigure}
+%%   \caption{Convergence Plots}
+%%   \label{plt1}
+%% \end{figure}
+%% \end{document}

@@ -93,7 +93,7 @@ class Ellipsoid(Case):
         return 2 * self.alpha**exponents * x
 
     def derivative(self, x):
-        return self.derivative_vec(np.array([x]))
+        return self.derivative_vec(np.array([x]))[0]
 
     def hessian_vec(self, x):
         d = x.shape[1]
@@ -120,49 +120,58 @@ class Rosenbrock(Case):
         return (1 - x1)**2 + 100 * (x2 - x1**2)**2
 
     def derivative_vec(self, x):
-        if x.shape[1] != 2:
-            raise ValueError("x must have two dimensions")
-        x1 = x[:,0]
-        x2 = x[:,1]
-        dx1 = 2 * (-1 + x1 + 200 * x2**3 - 200 * x1 * x2)
-        dx2 = 200 * (x2 - x1**2)
-        return np.vstack((dx1, dx2)).T
+        # if x.shape[1] != 2:
+        #     raise ValueError("x must have two dimensions")
+        # x1 = x[:,0]
+        # x2 = x[:,1]
+        # dx1 = 2 * (-1 + x1 + 200 * x2**3 - 200 * x1 * x2)
+        # dx2 = 200 * (x2 - x1**2)
+        # return np.vstack((dx1, dx2)).T
+        raise NotImplementedError("Not implemented yet")
 
     def derivative(self, x):
-        return self.derivative_vec(np.array([x]))
+        dfx1 = -2 * (1 - x[0]) - 400*x[0] * (x[1] - x[0]**2)
+        dfx2 = 200 * (x[1] - x[0]**2)
+        return np.array([dfx1, dfx2])
 
     def hessian_vec(self, x):
-        d = x.shape[1]
-        if d != 2:
-            raise ValueError("x must have two dimensions")
-        x1 = x[:,0]
-        x2 = x[:,1]
-        n = x.shape[0]
+        # d = x.shape[1]
+        # if d != 2:
+        #     raise ValueError("x must have two dimensions")
+        # x1 = x[:,0]
+        # x2 = x[:,1]
+        # n = x.shape[0]
 
-        # initialize 3d array
-        result = np.zeros((n, d, d))
-        # find second derivatives as 1d arrays
-        dx1x1 = 2 + 1200 * x1**2 - 400 * x2
-        dx1x2 = -400 * x1
-        dx2x2 = 200
-        # insert into the 3d array
-        result[:,0,0] = dx1x1
-        result[:,0,1] = dx1x2
-        result[:,1,0] = dx1x2
-        result[:,1,1] = dx2x2
-        return result
+        # # initialize 3d array
+        # result = np.zeros((n, d, d))
+        # # find second derivatives as 1d arrays
+        # dx1x1 = 2 + 1200 * x1**2 - 400 * x2
+        # dx1x2 = -400 * x1
+        # dx2x2 = 200
+        # # insert into the 3d array
+        # result[:,0,0] = dx1x1
+        # result[:,0,1] = dx1x2
+        # result[:,1,0] = dx1x2
+        # result[:,1,1] = dx2x2
+        # return result
+        raise NotImplementedError("Not implemented yet")
 
     def hessian(self, x):
-        return self.hessian_vec(np.array([x]))
+        hessian = np.zeros((2, 2))
+        hessian[0,0]=800*x[0]**2-400*(x[1]-x[0]**2)+2
+        hessian[0,1]=-400*x[0]
+        hessian[1,0] = -400 * x[0]
+        hessian[1,1]=200
+        return hessian
 
 
-class LogEllipsoid(Ellipsoid):
+class LogEllipsoid(Case):
     def __init__(self, alpha=1000, eps=(10 ** (-16))):
         self.eps = eps
         self.alpha = alpha
 
     def apply_vec(self, x):
-        f1_v = super().apply(x)
+        f1_v = Ellipsoid().apply_vec(x)
         return np.log(self.eps + f1_v)
 
     def derivative_vec(self, x):
@@ -174,7 +183,7 @@ class LogEllipsoid(Ellipsoid):
         return denom[:,np.newaxis] * num
 
     def derivative(self, x):
-        return self.derivative_vec(np.array([x]))
+        return self.derivative_vec(np.array([x]))[0]
 
     def hessian(self, x):
         d = x.shape[0]
@@ -190,7 +199,6 @@ class LogEllipsoid(Ellipsoid):
         raise NotImplementedError("Not implemented yet")
 
 
-
 class AttractiveSector(Case):
     def __init__(self, q=10**8):
         self.q = q
@@ -200,7 +208,7 @@ class AttractiveSector(Case):
 
     def apply_h(self, x):
         zeros = np.zeros(x.shape)
-        return np.log(1 + np.exp(-np.abs(x))) + np.max((x, zeros), axis=0)
+        return np.log(1 + np.exp(-np.abs(self.q * x))) + np.max((self.q*x, zeros), axis=0) / self.q
 
     def hessian(self, x):
         d = x.shape[0]
@@ -263,6 +271,7 @@ def main():
     att_sec = AttractiveSector2()
     x = att_sec.hessian(np.array([0,0]))
     print(x)
+
 
 if __name__ == "__main__":
     main()
