@@ -6,15 +6,24 @@ import itertools
 
 
 
-# def solve_sub_problem(A, b, x, i, foo, bar):
-#     # p 56 in the book
-#     grad = A @ x + b
-#     p_k = np.zeros(b.shape[0])
-#     p_k[i] = 1
-#     a_k = -(grad @ p_k)/(p_k @ A @ p_k)
-#     alpha = a_k * p_k
-#     # print("alpha", alpha)
-#     return alpha
+def solve_sub_problem(A, b, x, i, a_max, a_min):
+    # p 56 in the book
+    grad = A @ x + b
+    p_k = np.zeros(b.shape[0])
+    p_k[i] = 1
+    a_k = -(grad @ p_k)/(p_k @ A @ p_k)
+
+    min_ak = a_min - x[i]
+    max_ak = a_max - x[i]
+    a_chosen = max(min_ak, min(max_ak, a_k))
+
+    if DEBUG:
+        print("min_ak = {}, max_ak = {}, a_k = {}, chosen = {}".format(min_ak, max_ak, a_k, a_chosen))
+
+
+    alpha = a_chosen * p_k
+
+    return alpha
 
 
 # def solve_sub_problem(A,b,x,i,a_max, a_min,rho=0.2, c=1e-7, max_iter=5):
@@ -38,30 +47,30 @@ import itertools
 #     return alpha_e
 
 
-def solve_sub_problem(A,b,x,i,a_max,a_min):
-    def fun(alpha):
-        v = x + e_i * alpha
-        return (1/2) * v @ A @ v + b @ v
+# def solve_sub_problem(A,b,x,i,a_max,a_min):
+#     def fun(alpha):
+#         v = x + e_i * alpha
+#         return (1/2) * v @ A @ v + b @ v
 
-    def der(alpha):
-        v = x + e_i * alpha
-        return np.array(((A @ v + b) @ e_i))
+#     def der(alpha):
+#         v = x + e_i * alpha
+#         return np.array(((A @ v + b) @ e_i))
 
-    def con_max(alpha):
-        return a_max - (x[i] + alpha)
+#     def con_max(alpha):
+#         return a_max - (x[i] + alpha)
 
-    def con_min(alpha):
-        return (x[i] + alpha) - a_min
+#     def con_min(alpha):
+#         return (x[i] + alpha) - a_min
 
-    cons = [{'type':'ineq', 'fun': con_max},
-            {'type':'ineq', 'fun': con_min}]
+#     cons = [{'type':'ineq', 'fun': con_max},
+#             {'type':'ineq', 'fun': con_min}]
 
-    e_i = np.zeros(b.shape[0])
-    e_i[i] = 1
-    alpha = 1
-    # m = minimize(fun, 1, constraints=cons, jac=der, options={"disp": True})
-    m = minimize(fun, alpha, constraints=cons, jac=der)
-    return m.x * e_i
+#     e_i = np.zeros(b.shape[0])
+#     e_i[i] = 1
+#     alpha = 1
+#     # m = minimize(fun, 1, constraints=cons, jac=der, options={"disp": True})
+#     m = minimize(fun, alpha, constraints=cons, jac=der)
+#     return m.x * e_i
 
 
 
@@ -85,6 +94,7 @@ def coordinate_descent(A, b, mins, maxs, epsilon=1e-5, max_iter=1000):
                 print("x_{}, alpha: {}, x: {}, g: {}".format(i, alpha, x, g))
             if np.linalg.norm(g) < epsilon:
                 break
+    print("Stopped at", it)
     return x
 
 def exact_1d(A, b, x_v, i, mins, maxs):
@@ -127,7 +137,8 @@ def exact_solution(A,b, mins, maxs):
 
                 coors = exact_1d(A, b, v, i, mins, maxs)
                 curr = fun(coors)
-                print("curr = {}, coors = {}".format(curr, coors))
+                if DEBUG:
+                    print("curr = {}, coors = {}".format(curr, coors))
                 if curr < best:
                     best_coor = coors
                     best = curr
@@ -139,25 +150,25 @@ def main():
         return (1/2) * x @ A @ x + b @ x
     A = np.array([[2,1], [1,1]])
     b = np.array([3,4])
-    mins = np.array([-50, 0.5])
+    mins = np.array([-75, -75])
     # mins = np.array([-20, -20])
-    maxs = np.array([-0.5, 1.5])
+    maxs = np.array([-50, -50])
     # maxs = np.array([-10, -10])
 
-    cd = coordinate_descent(A, b, mins, maxs, max_iter=10)
+    cd = coordinate_descent(A, b, mins, maxs, max_iter=2)
     es = exact_solution(A, b, mins, maxs)
     diff = np.linalg.norm(cd - es)
     if diff < 1e-4:
         print("SUCCESS")
+        print("min at x={}".format(cd))
     else:
         print("FAILED!")
         print("x_cd = {}, x_es = {}, diff = {}".format(cd, es, diff))
         print("f(x_cd) = {}, f(x_es) = {}".format(fun(cd), fun(es)))
 
-    print(exact_1d(A, b, mins, 1, mins, maxs))
 
 if __name__ == "__main__":
-    DEBUG = False
+    DEBUG = True
     main()
 
 
