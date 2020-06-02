@@ -5,26 +5,6 @@ from methods import newton
 import itertools
 
 
-def solve_sub_problem(A, b, x, i, a_max, a_min):
-    # p 56 in the book
-    grad = A @ x + b
-    p_k = np.zeros(b.shape[0])
-    p_k[i] = 1
-    # a_k = -(grad @ p_k) / (p_k @ A @ p_k)
-    a_k = -(grad[i] / A[i, i])
-
-    min_ak = a_min - x[i]
-    max_ak = a_max - x[i]
-    a_chosen = max(min_ak, min(max_ak, a_k))
-
-    # if DEBUG:
-    #     print("min_ak = {}, max_ak = {}, a_k = {}, chosen = {}".format(min_ak, max_ak, a_k, a_chosen))
-
-    alpha = a_chosen * p_k
-
-    return alpha
-
-
 # def solve_sub_problem(A,b,x,i,a_max,a_min):
 #     # solve using scipy.minimize
 #     def fun(alpha):
@@ -51,8 +31,24 @@ def solve_sub_problem(A, b, x, i, a_max, a_min):
 #     m = minimize(fun, alpha, constraints=cons, jac=der)
 #     return m.x * e_i
 
-def stopping_criterion(A, x, b, mins, maxs):
-    g = A @ x + b
+def solve_sub_problem(A, b, x, g, i, a_max, a_min):
+    # p 56 in the book
+    p_k = np.zeros(b.shape[0])
+    p_k[i] = 1
+    a_k = -(g[i] / A[i, i])
+
+    min_ak = a_min - x[i]
+    max_ak = a_max - x[i]
+    a_chosen = max(min_ak, min(max_ak, a_k))
+
+    # if DEBUG:
+    #     print("min_ak = {}, max_ak = {}, a_k = {}, chosen = {}".format(min_ak, max_ak, a_k, a_chosen))
+
+    alpha = a_chosen * p_k
+    return alpha, g + a_k * A[i]
+
+
+def kkt_error(x, g, mins, maxs):
     h = np.copy(g)
     zero_filter = np.logical_or(np.logical_and(g < 0, x == mins), np.logical_and(g > 0, x == maxs))
     h[zero_filter] = 0
@@ -68,20 +64,23 @@ def coordinate_descent(A, b, mins, maxs, epsilon=1e-5, max_iter=1000):
         print("Starting:",x)
     converged = False
 
+    g = A @ x + b
     for it in range(max_iter):
         if DEBUG:
             print("Iteration", it)
         for i in range(b.shape[0]):
-            alpha = solve_sub_problem(A, b, x, i, maxs[i], mins[i])
+            alpha, g = solve_sub_problem(A, b, x, g, i, maxs[i], mins[i])
             x += alpha
-            h = stopping_criterion(A, x, b, mins, maxs)
-
+            h = kkt_error(x, g, mins, maxs)
         h_norm = np.linalg.norm(h)
         if DEBUG:
             print("alpha: {}, x: {}, h: {}, h_norm: {}".format(alpha, x, h, h_norm))
         if h_norm < epsilon:
             break
-    print("Stopped at", it)
+    if it == max_iter - 1:
+        print("Stopped at max_iter = {}".format(it))
+    else:
+        print("Stopped at {}, epsilon reached".format(it))
     return x
 
 
@@ -133,30 +132,34 @@ def exact_solution(A,b, mins, maxs):
         return best_coor
 
 
-def main():
-    def fun(x):
-        return (1/2) * x @ A @ x + b @ x
-    A = np.array([[2,1], [1,1]])
-    b = np.array([3,4])
-    mins = np.array([-75, -75])
-    # mins = np.array([-20, -20])
-    maxs = np.array([75, 75])
-    # maxs = np.array([-10, -10])
 
-    cd = coordinate_descent(A, b, mins, maxs, max_iter=1000)
+def run_test(A, b, mins, maxs, eps=1e-3, max_iter=1000):
+    cd = coordinate_descent(A, b, mins, maxs, max_iter=max_iter)
     es = exact_solution(A, b, mins, maxs)
     diff = np.linalg.norm(cd - es)
-    if diff < 1e-3:
+    is_close = diff < eps
+    if is_close:
         print("SUCCESS")
         print("min at x={}".format(cd))
     else:
         print("FAILED!")
         print("x_cd = {}, x_es = {}, diff = {}".format(cd, es, diff))
         print("f(x_cd) = {}, f(x_es) = {}".format(fun(cd), fun(es)))
+    return is_close
+
+
+def main():
+    A = np.array([[2,1], [1,1]])
+    b = np.array([3,4])
+    mins = np.array([-75, -75])
+    # mins = np.array([-20, -20])
+    maxs = np.array([75, 75])
+    # maxs = np.array([-10, -10])
+    run_test(A, b, mins, maxs)
 
 
 if __name__ == "__main__":
-    DEBUG = True
+    DEBUG = False
     main()
 
 
