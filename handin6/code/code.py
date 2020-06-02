@@ -5,49 +5,28 @@ from methods import newton
 import itertools
 
 
-
 def solve_sub_problem(A, b, x, i, a_max, a_min):
     # p 56 in the book
     grad = A @ x + b
     p_k = np.zeros(b.shape[0])
     p_k[i] = 1
-    a_k = -(grad @ p_k)/(p_k @ A @ p_k)
+    # a_k = -(grad @ p_k) / (p_k @ A @ p_k)
+    a_k = -(grad[i] / A[i, i])
 
     min_ak = a_min - x[i]
     max_ak = a_max - x[i]
     a_chosen = max(min_ak, min(max_ak, a_k))
 
-    if DEBUG:
-        print("min_ak = {}, max_ak = {}, a_k = {}, chosen = {}".format(min_ak, max_ak, a_k, a_chosen))
-
+    # if DEBUG:
+    #     print("min_ak = {}, max_ak = {}, a_k = {}, chosen = {}".format(min_ak, max_ak, a_k, a_chosen))
 
     alpha = a_chosen * p_k
 
     return alpha
 
 
-# def solve_sub_problem(A,b,x,i,a_max, a_min,rho=0.2, c=1e-7, max_iter=5):
-#     def fun(x):
-#         return x @ A @ x + b @ x
-#     # alpha = min(a_max - x[i], 1)
-#     alpha = (a_max - x[i])
-#     # alpha = 1
-#     gradient = A @ x + b
-#     p = np.zeros(b.shape[0])
-#     p[i] = 1
-#     for i in range(max_iter):
-#         print("sub iteration", alpha)
-#         term1 = fun(x + alpha * p)
-#         term2 = fun(x) + c * alpha * np.dot(gradient, p)
-#         print("term1", term1, "term2", term2)
-#         if term1 <= term2:
-#             break
-#         alpha*=rho
-#     alpha_e = alpha * p
-#     return alpha_e
-
-
 # def solve_sub_problem(A,b,x,i,a_max,a_min):
+#     # solve using scipy.minimize
 #     def fun(alpha):
 #         v = x + e_i * alpha
 #         return (1/2) * v @ A @ v + b @ v
@@ -72,6 +51,12 @@ def solve_sub_problem(A, b, x, i, a_max, a_min):
 #     m = minimize(fun, alpha, constraints=cons, jac=der)
 #     return m.x * e_i
 
+def stopping_criterion(A, x, b, mins, maxs):
+    g = A @ x + b
+    h = np.copy(g)
+    zero_filter = np.logical_or(np.logical_and(g < 0, x == mins), np.logical_and(g > 0, x == maxs))
+    h[zero_filter] = 0
+    return h
 
 
 def coordinate_descent(A, b, mins, maxs, epsilon=1e-5, max_iter=1000):
@@ -89,13 +74,16 @@ def coordinate_descent(A, b, mins, maxs, epsilon=1e-5, max_iter=1000):
         for i in range(b.shape[0]):
             alpha = solve_sub_problem(A, b, x, i, maxs[i], mins[i])
             x += alpha
-            g = A @ x + b
-            if DEBUG:
-                print("x_{}, alpha: {}, x: {}, g: {}".format(i, alpha, x, g))
-            if np.linalg.norm(g) < epsilon:
-                break
+            h = stopping_criterion(A, x, b, mins, maxs)
+
+        h_norm = np.linalg.norm(h)
+        if DEBUG:
+            print("alpha: {}, x: {}, h: {}, h_norm: {}".format(alpha, x, h, h_norm))
+        if h_norm < epsilon:
+            break
     print("Stopped at", it)
     return x
+
 
 def exact_1d(A, b, x_v, i, mins, maxs):
     i_given = i
@@ -129,16 +117,16 @@ def exact_solution(A,b, mins, maxs):
         best = np.inf
         for i in range(2):
             for v_i, v in enumerate([mins, maxs]):
-                if DEBUG:
-                    if v_i == 0:
-                        print("checking x_{} >= {}".format(i, v[i]))
-                    else:
-                        print("checking x_{} <= {}".format(i, v[i]))
+                # if DEBUG:
+                #     if v_i == 0:
+                #         print("checking x_{} >= {}".format(i, v[i]))
+                #     else:
+                #         print("checking x_{} <= {}".format(i, v[i]))
 
                 coors = exact_1d(A, b, v, i, mins, maxs)
                 curr = fun(coors)
-                if DEBUG:
-                    print("curr = {}, coors = {}".format(curr, coors))
+                # if DEBUG:
+                #     print("curr = {}, coors = {}".format(curr, coors))
                 if curr < best:
                     best_coor = coors
                     best = curr
@@ -152,13 +140,13 @@ def main():
     b = np.array([3,4])
     mins = np.array([-75, -75])
     # mins = np.array([-20, -20])
-    maxs = np.array([-50, -50])
+    maxs = np.array([75, 75])
     # maxs = np.array([-10, -10])
 
-    cd = coordinate_descent(A, b, mins, maxs, max_iter=2)
+    cd = coordinate_descent(A, b, mins, maxs, max_iter=1000)
     es = exact_solution(A, b, mins, maxs)
     diff = np.linalg.norm(cd - es)
-    if diff < 1e-4:
+    if diff < 1e-3:
         print("SUCCESS")
         print("min at x={}".format(cd))
     else:
