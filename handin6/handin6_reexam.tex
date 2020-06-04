@@ -1,0 +1,244 @@
+\documentclass[a4paper]{article}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage[english]{babel}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+\usepackage{xcolor}
+%% \usepackage{subfigure}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{stmaryrd}
+
+\usepackage{a4wide}
+\usepackage{url}
+
+\usepackage{appendix}
+
+\graphicspath{{imgs/}} %Setting the graphicspath
+
+\lstset{
+  frame=tb,
+  language=Python,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  formfeed=newpage,
+  tabsize=4,
+  comment=[l]{\#},
+  breaklines=true,
+  morekeywords={models, lambda, forms}
+}
+
+\newcommand{\prob}[1]{\mathbb{P}\left(#1\right)}
+\newcommand{\expect}[1]{\mathbb{E}\left(#1\right)}
+\newcommand{\bt}[1]{\mathbf{#1}}
+\newcommand{\avg}[1]{\sum_{i=1}^{#1}X_i}
+\newcommand*{\QEDA}{\hfill\ensuremath{\blacksquare}}%
+
+\newcommand{\nt}{\text}
+\newcommand{\lagr}{\mathcal{L}}
+\newcommand{\isum}{\sum^\infty_}
+\newcommand{\f}{$f$}
+
+\title{\vspace{-5cm} Numerical Optimization \\ Re-exam Handin 6}
+\author{Dmitry Serykh (qwl888)}
+
+\begin{document}
+\maketitle
+\section{The Setup}
+In this assignment, I have implemented a coordinate descent minimizer for a quadratic problem with
+box-constraints, which can be written as:
+\[
+\begin{array}{l}
+  \min _{\vec{x}} f(\vec{x}):=\frac{1}{2} \vec{x}^{\top} A \vec{x}+\vec{b}^{\top} \vec{x} \\
+  \text { s.t. } m_{i} \leq x_{i} \leq M_{i}, \quad \forall i=1, \ldots, n
+\end{array}
+\]
+
+\subsection{Solution to the 1D Problem}
+While the basic steps of the algorithm are described in the assignment text,
+some important details were omitted. I would especially focus on the solution to
+the 1D problem, which can be formulated as:
+\[
+\begin{array}{l}
+\alpha_k = \arg \min_\alpha f(\vec x_k + \alpha \vec e_i)\; \text{ s.t. }m_i\leq x_{k,i} + \alpha \leq M_i\\
+\vec x_{k+1} =\vec x_k + \alpha_k \vec e_i
+\end{array}
+\]
+The step direction for the quadratic problem can be found analytically by using
+the formula (3.55, p. 56 in the book):
+\[
+\alpha_{k}=-\frac{\nabla f_{k}^{T} p_{k}}{p_{k}^{T} Q p_{k}}
+\]
+where $p_k$ is the search direction and $Q$ is the matrix. It can be
+reformulated to:
+\[
+\alpha_{k}=-\frac{\nabla f(x_k)^{T} \vec{e}_{i}}{\vec{e}_{i}^{T} A \vec{e}_i}= -\frac{\nabla f(x_k)_i}{A_{i,i}}
+\]
+The downside of this approach is that the endpoint of the step can be outside of
+the feasible region. We can solve this by adding:
+\[
+\alpha_{k}=\text{max}\left(\text{min}\left(\alpha_{min},\; -\frac{\nabla f(x_k)_i}{A_{i,i}}\right), \alpha_{max}\right)
+\]
+where $\alpha_{min} = x_i - m_i$ and $\alpha_{max} = x_i - M_i$.
+
+\subsection{Parameters}
+I used following parameter values in my implementation:
+\begin{itemize}
+\item I used the KKT error as stopping criterion, by following the guidelines in
+  the assignment text. The threshold for the norm of $h$ was set to $\epsilon = 1e-5$.
+\item Starting point was placed in the center of the feasible area, s.t
+  $x_0 = \frac{\vec{M} - \vec{m}}{2}$
+\item \texttt{max\_iter} was set to 1000
+\end{itemize}
+
+\section{Testing protocol}
+\subsection{Validation}
+I validated my implementation by implementing the exact 2D problem solver using
+the method, described in the text, where we first try to make a newton step, and
+if the endpoint lies outside the feasible region, we check all the box sides, by
+solving 4 problems in one dimension and finding the minimum of the four. \\\\
+My coordinate descent implementation find the minima, which lay in the proximity
+of $10^{-4}$ of the exact solution. It was important to test the cases, where
+the global minima of the function lies inside the feasible region and ones,
+where it is not the case. The other important aspect was
+to test the cases where the minimizer had to take positive steps and ones with
+the negative steps.
+
+\subsection{Problem Generation}
+In order to generate the quadratic problems, I have used two approaches, both of
+which were described in the assignment text:
+\begin{itemize}
+\item The first is for generation of hard 2D problems, where:
+  \[
+  \begin{aligned}
+    A=\left[\begin{array}{ll}1 & \beta \\ \beta & 1\end{array}\right]\\
+    -1 < \beta < 1 \\
+    \beta = \frac{999}{1000}
+  \end{aligned}
+  \]
+  For the value of $\vec{b}$, I used a vector of normally distributed values
+  with $\sigma=0.01$ and $\mu=0$.
+\item The second is for generation of quadratic problems of higher dimensions $d$, where:
+  \[
+  \begin{aligned}
+    A = B^TB\\
+    -1 \leq x_i \leq 1
+  \end{aligned}
+  \]
+  The same method for generation of $\vec{b}$ was used.
+\end{itemize}
+
+
+\subsection{Metrics}
+In order to further test the effectiveness of my implementation, I came up with a
+testing protocol, where I used following metrics:
+\begin{itemize}
+\item The convergence plots with norm of the vecor $\vec{h}$ on the y-axis and
+  iteration number on the x-axis for the 2D quadratic problems.
+  The resulting plot can be seen on Figure \ref{plt2}.
+\item The convergence plots with norm of the $\vec{h}$ for the multidimensional
+  quadratic problems for $d \in \{5, 10, 15\}$. The resulting plot can be seen
+  on Figure \ref{plt3}.
+\item I measured the relationship between the dimensionality of the quadratic
+  problem and the efficiency of my implementation, which is measured by the
+  number of iterations until the magnitude of $\vec{h}$ reaches $10^{-5}$. The
+  resulting plot can be seen on Figure \ref{plt1}.
+\end{itemize}
+Each experiment was repeated 100 times for all metrics and the mean was taken.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{plt_dim100.png}
+    \caption{Average efficiency of my implementation of the coordinate descent
+      as function of quadratic problem dimensionality}
+  \label{plt1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{plt_hnorms_2d.png}
+    \caption{Convergence plot (average norm of $\vec{h}$) of my implementation of the coordinate descent
+      for the 2D problem with $\beta = 0.999$}
+  \label{plt2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{plt_hnorms.png}
+    \caption{Convergence plot (average norm of $\vec{h}$) of my implementation of the
+      coordinate descent for the multi-dimensional problem $d \in \{ 5,10,15\}$}
+  \label{plt3}
+\end{figure}
+
+\section{Theoretical Part}
+\subsection{}
+I will reformulate the First-Order Necessary Conditions in terms of the box
+constraints. I will use index $i$ for the dimension of the problem, hence there
+would be two constraints for each $i$:
+\begin{itemize}
+\item Lower bound: $x_i^* \geq m_i \leftrightarrow x_i^* \leq - m_i \geq 0 $
+\item Upper bound: $x_i^* \leq M_i \leftrightarrow M_i - x_i^*\geq 0 $
+\end{itemize}
+Furthermore, there would be two sets of Lagrangian multipliers: $\lambda_{m,i}$,
+related to lower bounds and $\lambda_{M,i}$, corresponding to
+the upper bounds. The First-Order Necessary Conditions can therefore be
+expressed as: \\\\
+$x_*$ is local minimum for the quadratic problem with box constraints, if:
+\begin{align}
+  x_i^* - m_i &\geq 0 ,\; & \forall i=1, \ldots, n \\
+  M_i - x_i^* &\geq 0 ,\; & \forall i=1, \ldots, n \\
+  \lambda_{m,i}^{*} &\geq 0 ,\; & \forall i=1, \ldots, n \\
+  \lambda_{M,i}^{*} &\geq 0 ,\; & \forall i=1, \ldots, n \\
+  \lambda_{m,i}^{*}(x_i^* - m_i)& =0, \; & \forall i=1, \ldots, n\\
+  \lambda_{M,i}^{*}( M_i - x_i^*) &=0, \; & \forall i=1, \ldots, n\\
+  \nabla f\left(x^{*}\right)
+  -
+  \sum_{i \in \mathcal{A}_m\left(x^{*}\right)} e_i\lambda_{m,i}^{*} x^{*}_i
+  -
+  \sum_{i \in \mathcal{A}_M\left(x^{*}\right)} e_i \lambda_{M,i}^{*} x^{*}_i &= 0
+\end{align}
+
+\subsection{}
+
+\subsection{}
+
+\subsection{}
+Throughout the execution of the coordinate descent, the current $x$ is kept
+inside the feasible region, hence the first two conditions are satisfied.
+
+\section{Conclusion}
+I have implemented a working implemenation of a quadratic problem minimizer
+using coordinate descent with box constraints. I validated my solution by
+comparing the found minima with an exact problem solver. I plotted the
+convergence of the method and can conclude that it exhibits a linear
+convergence, simmilarly to a steepest descent minimizer. Moreover, I can also
+conclude that the time to reach the optimum scales linearly with the problem dimensionality.
+
+\end{document}
+
+
+%% \section{Convergence Plots}
+%% \label{sec:conv}
+%% \begin{figure}[H]
+%%   \centering
+%%   \begin{subfigure}[b]{\textwidth}
+%%     \centering
+%%     \includegraphics[width=\textwidth]{plt_f_1.png}
+%%     \caption{Ellipsoid Function}
+%%   \end{subfigure}
+%%   \begin{subfigure}[b]{\textwidth}
+%%     \centering
+%%     \includegraphics[width=\textwidth]{plt_f_2.png}
+%%     \caption{Rosenbrock Function}
+%%   \end{subfigure}
+%%   \caption{Convergence Plots}
+%%   \label{plt1}
+%% \end{figure}
+%% \end{document}
