@@ -52,14 +52,16 @@
 \begin{document}
 \maketitle
 \section{The Setup}
-For this assignment, I used Python and the \texttt{minimize} function from the
-\texttt{scipy.optimize}. For the minimizer, I have decided to use the BFGS optimizer, since
+For this assignment, I used Python, and all the relevant functions from
+\texttt{numpy} and \texttt{scipy} packages. In particular, I have utilized the
+\texttt{minimize} function from the \texttt{scipy.optimize} library.
+I have chosen the BFGS optimizer, since
 it is the default choice for the unconstrained optimization in this library. BFGS stands for
 Broyden–Fletcher–Goldfarb–Shanno algorithm and belongs to the family
-of quasi-Newton optimizers that is a state-of-the-art alternative to Newton methods, but does
-not require a Hessian matrix. It can also be classified as a Line-Search and
-algorithm, where we first determine the direction $p_k$ and the step length
-in that direction $\alpha$ afterwards.
+of quasi-Newton optimizers that is a state-of-the-art alternative to Newton
+methods, thus it does not require the Hessian matrix. Moreover, it can be
+classified as a Line-Search algorithm, where we first determine the direction
+$p_k$ and the step length in that direction $\alpha$ afterwards.
 
 \subsection{Parameters}
 The \texttt{scipy} implementation of the BFGS algorithm has following
@@ -71,68 +73,77 @@ parameters:
 \item \emph{norm} - Order of norm
 \item \emph{eps} - Step size used when the gradient is approximated.
 \end{itemize}
-I did not use the \emph{maxiter} parameter, since the gradient magnitude is be used to determine 
-when to stop the iteration. For \emph{gtol}, I used the default value of $10^{-5}$, and $\infty$ for
-the \emph{norm}. \emph{eps} was not used, since I we have implemented a gradient
-for all five functions and we do not need to approximate it.
-For all the functions, I have used a dimensionality of two.
+I used the value of $1000$ for the \emph{maxiter} parameter, but it was never
+used, since the gradient magnitude was used as a primary stopping criterion.
+For \emph{gtol}, I used the default value of
+$10^{-5}$, and $\infty$ for the \emph{norm}. \emph{eps} was not used, since I we
+have implemented a gradient for all five functions and we do not need to
+approximate it. For all the functions, I have used a dimensionality of two.
 
 \section{Testing}
 \subsection{What constitutes a good testing protocol?}
-According to Chapter 1 in the book, good optimization algorithms should possess
+According to Chapter 1 in the book, good optimization algorithms must have
 following properties:
 \begin{itemize}
-\item \textbf{Robustness}
-\item \textbf{Efficiency}
-\item \textbf{Accuracy}
+\item \textbf{Robustness}. Ability of the algorithm to find minima of vast array
+  of different functions. Furthermore, the algorithm should be indifferent to
+  the starting point $x_0$.
+\item \textbf{Efficiency}. A good optimization algorithm should not consume too
+  much computational resources (and memory/storage).
+\item \textbf{Accuracy}. Good optimization algorithms should find the minima
+  accurately to some tolerance $\varepsilon$.
 \end{itemize}
-There existing data aggregation methods include: minimum, maximum,
-average(mean), median, variance, standard deviation.
+In order to process and then visualize the gathered data from the experiments, I
+must use one of the existing aggregation methods. These include: minimum, maximum,
+average(mean), median, variance, standard deviation. I decided both to use the
+median and the mean. The main difference between these methods is how they
+manage the influence of the outliers. When using the mean, we maintain the
+influence of the outliers in the set, while it is excluded when using the median.
 
 \subsection{My testing protocol}
 In order to test the effectiveness of the BFGS implementation from the
-\texttt{scipy.optimize}, I came up with a testing protocol, where I use
-two measures of performance:
+\texttt{scipy.optimize}, I came up with a testing protocol:
 \begin{itemize}
+\item In order to measure the robustness of the algorithm, I have used the
+  algorithm to find the minima of all five problem functions: The Ellipsoid
+  function($f_1$), the Rosenbrock Banana function ($f_2$), The Log-Ellipsoid
+  function ($f_3$) and the Attractive Sector functions ($f_4$ and $f_5$).
+  To test if the algorithm is indifferent to the starting point $x_0$, I have
+  used a random starting point taken from the uniform distribution in the
+  interval between $-10$ to $10$ for both dimensions,
+  repeated all the experiments 100 times and took the median of the results.
+\item I decided to measure the efficiency of the algorithms in number of
+  iterations until the gradient magnitude reaches $10^{-5}$. It should however
+  be noted that steps of some algorithms are more
+  computationally expensive than others. For example the Newton step requires a
+  computation of Hessian and therefore more expensive than a steepest-descent step.
+  The results can be seen on Table \ref{table}.
+\item The accuracy of the algorithm was tested by measuring the Euclidean distance
+  between the current point and the optima. The results can be seen on Table \ref{table}.
 \item The convergence plots with the number of iteration on the x-scale and the
   Euclidean distance between the current value of $x$ and the
-  optimum. The results can be seen on Figure \ref{plt1}. I applied the low shelf
-  to the results, so anything would stop at $10^{-6}$.
-\item The number of steps until the gradient magnitude reaches $10^{-5}$. The
-  results can be seen on Figure \ref{plt2}
+  optimum. The results can be seen on Figure \ref{plt1}.
+\item The convergence plots with the gradient magnitude
+  can be seen on Figure \ref{plt2}.
 \end{itemize}
-I used a random starting point taken from the uniform distribution in the
-interval between $-10$ to $10$ and repeated each optimization 100 times for both
-metrics and took the average. This was done to remove the influence of the
-starting position from the results of the optimization. I used the mean 
-to minimize the effect of the outliers,
-which is important due to the stochastic nature of the algorithm. 
 
-
-\section{Results}
-\label{sec:conv}
-\subsection{Convergence Plots}
-\label{subsec:label}
-\begin{figure}[H]
+\begin{figure}[]
   \centering
-  \includegraphics[width=0.75\textwidth]{plt_dists.png}
+  \includegraphics[width=0.8\textwidth]{plt_dists.png}
   \caption{Convergence Plot for BFGS, median of 100 runs. Y-axis shows the
     Euclidean distance to the optimum of each $f_1,...,f_7$ with random starting point}
   \label{plt1}
 \end{figure}
 
-
-\begin{figure}[H]
+\begin{figure}[]
   \centering
-  \includegraphics[width=0.75\textwidth]{plt_grad_norms.png}
+  \includegraphics[width=0.8\textwidth]{plt_grad_norms.png}
   \caption{Convergence Plots for BFGS, median over 100 runs. Y-axis shows the
     norm of the gradient of each $f_1,...,f_7$ with random starting point}
   \label{plt2}
 \end{figure}
 
-\subsection{Other Metrics}
-\label{subsec:label}
-\begin{table}[H]
+\begin{table}[]
 \centering
 \begin{tabular}{|l|l|l|l|l|l|}
 \hline
@@ -140,7 +151,7 @@ which is important due to the stochastic nature of the algorithm.
 efficiency & $7$ & $68$ & $16$ & $14$ & $12$ \\ \hline
 accuracy & $1.877e-8$  & $3.864e-7$ & $1.426e-13$  & $6.512e-7$  & $8.72e-5$ \\ \hline
 \end{tabular}
-\caption{Average number of iterations until algorithm termination ( $\| \nabla f \| < 1e-5$) and final distance to the optimum for 100 random starting points in the interval $[-10,10]$}
+\caption{Median number of iterations until algorithm termination ( $\| \nabla f \| < 1e-5$) and final distance to the optimum for 100 random starting points in the interval $[-10,10]$}
 \label{table}
 \end{table}
 
@@ -160,7 +171,7 @@ ratios of lengths, therefore the inequality
 \[
 f(\alpha(A x)+(1-\alpha)(A y)) \leq \alpha f(A x)+(1-\alpha) f(A y), \text { for all } \alpha \in[0,1]
 \]
-Would still hold, since we know that $f$ is strictly convex and therefore:
+would still hold, since we know that $f$ is strictly convex and therefore:
 \[
 f(\alpha(x)+(1-\alpha)(y)) \leq \alpha f(x)+(1-\alpha) f(y), \text { for all } \alpha \in[0,1]
 \]
