@@ -53,10 +53,21 @@
 \maketitle
 \section{The Setup}
 I implemented the stepest descent and Newton's algorithms using the
-backtracking line search in order to find the step length ($\alpha$).
+backtracking line search in order to find the step length (Algorithm 3.1).
+
+\subsection{Hessian Modification for the Newton's Method}
+The problem with Newton's method is that for non-convex functions, the Newton's step\\
+$p_k^{N} = -\nabla^2 f(x_k)^{-1} \nabla f(x_k)$ may not be in a descent direction and Hessian could
+be non-invertible. I have modified the Hessian using the Cholesky with Added
+Multiple of Identity method (Algorithm 3.3). A value of $\tau I$ is added to the
+Hessian. If the Cholesky factorization of the resulting matrix succeeds, we are done.
+Otherwise, a new value of $\tau$ is calculated.
+
 \subsection{Parameters}
-I have empirically found that for my implementation, different parameters must
-be used for the two methods. Following values were used:
+After some testing, I have determined that for my implementation, different
+parameters must be used for the steepest descent and Newton's methods.
+Following parameter values were used:
+
 \begin{itemize}
 \item \textbf{Initial step length.} For the Netwon's method, I have used the natural
   value of ($\bar{\alpha}=1$). For the stepest descent, I empirically found the value
@@ -64,17 +75,19 @@ be used for the two methods. Following values were used:
 \item \textbf{Factor $\rho$}. For the stepest descent, I used the value of
   $\rho = 0.2$. For the Newton's method, I have used the value of $\rho=0.5$.
 \item \textbf{Constant $c$}. For both methods, I have used to value of $c=10^{-5}$.
-\item \textbf{Stopping criteria}. For the stepest descent, I have used
-  $\epsilon=\bt{d}^T\bt{d} = 10^{-7}$. For the Newton's method, I have used
-  $\epsilon=\bt{d}^T\bt{Hd} = 10^{-7}$. Furthermore, I have terminated the
-  algorithm at 20000 iterations. However this was only relevant to the stepest descent.
+\item \textbf{Stopping criteria}. For both methods, I have used
+  $\varepsilon = \| \nabla f\| = 10^{-7}$. Furthermore, I have terminated the
+  algorithm at 20000 iterations. However this was only relevant to the steepest descent.
+\item \textbf{Value of $\beta$}. For the Hessian Modification (Algorithm 3.3), I
+  have used a value of $\beta=10^{-3}$.
 \end{itemize}
-%% \subsection{Processing of Hessian for the Newton's Method}
+
 
 
 \section{Testing protocol}
 In order to test the effectiveness of my implementation, I came up with a
 testing protocol, where I used following metrics:
+
 \begin{itemize}
 \item The convergence plots with the number of iteration on the x-scale and the
   log of the Euclidean distance between the current value of $x$ and the
@@ -119,23 +132,36 @@ newton           & $1$  & $30$   & $16$  & $29$  & $2 $ \\ \hline
 
 \begin{figure}[]
     \centering
-    \includegraphics[width=0.9\textwidth]{plt_grad100.png}
+    \includegraphics[width=0.6\textwidth]{plt_grad100.png}
     \caption{Convergence plot with norm of the gradient on y-axis}
   \label{plt1}
 \end{figure}
 
 \begin{figure}[]
     \centering
-    \includegraphics[width=0.9\textwidth]{plt_dist100.png}
+    \includegraphics[width=0.8\textwidth]{plt_dist100.png}
     \caption{Convergence plot with log of euclidean distance on the y-axis}
   \label{plt2}
 \end{figure}
 
-
-
 \section{Theoretical Part}
 \subsection{Exercise 3.7}
-By the definition of the Steepest Descent method, and subtracting the $x^*$ on
+Let us start by looking at the expression:
+\[
+\begin{aligned}
+\nabla f(x_k) &= Q\left(x_{k}-x^{*}\right)\\
+Q^{-1}\nabla f(x_k) &= \left(x_{k}-x^{*}\right)
+\end{aligned}
+\]
+$f(x_k)^T = \left(x_{k}-x^{*}\right)^TQ^T = \left(x_{k}-x^{*}\right)^TQ$, since $Q$ is symmetric, then:
+\[
+\begin{aligned}
+\nabla f(x_k)^T Q^{-1}\nabla f(x_k) &= \left(x_{k}-x^{*}\right)^TQ\left(x_{k}-x^{*}\right)\\
+ \| x_{k} - x^* \|_Q^2 &= \nabla f(x_k)^T Q^{-1}\nabla f(x_k)
+\end{aligned}
+\]
+This would be useful later.\\\\
+By the definition of the step direction in the Steepest Descent method, and subtracting the $x^*$ on
 both sides, we have:
 \[
 x_{k+1} - x^* = x_k - x^* - \alpha\nabla f(x_k)
@@ -152,16 +178,28 @@ Then, by the definition of the Q-weighted norm, we have:
   \nabla f(x_k)^{T} Q \nabla f(x_k)
 \end{aligned}
 \]
-We know that $\nabla f=Q\left(x_{k}-x^{*}\right)$ and $\alpha=\nabla f^{T}
-\nabla f /\left(\nabla f^{T} Q \nabla f\right)$, therefore:
+We know that $\nabla f(x_k)=Q\left(x_{k}-x^{*}\right)$, and we have the exact solution
+for the step length for the quadratic function that is given by:
+$\alpha=\frac{\nabla f(x_k)^{T} \nabla f(x_k)}{\nabla f(x_k)^{T} Q \nabla f(x_k)}$, therefore:
 \[
 \begin{aligned}\left\|x_{k+1}-x^{*}\right\|_{Q}^{2}
-  &=\left\|x_{k}-x^{*}\right\|_{Q}^{2}-2 \alpha \nabla f(x_k)^{T} \nabla f(x_k)+\alpha^{2}
-  \nabla f(x_k)^{T} Q \nabla f(x_k) \\ &=\left\|x_{k}-x^{*}\right\|_{Q}^{2}-2\left(\nabla
-  f(x_k)^{T} \nabla f(x_k)\right)^{2} /\left(\nabla f(x_k)^{T} Q \nabla f(x_k)\right)+\left(\nabla
-  f(x_k)^{T} \nabla f(x_k)\right)^{2} /\left(\nabla f(x_k)^{T} Q \nabla f(x_k)\right) \\
-  &=\left\|x_{k}-x^{*}\right\|_{Q}^{2}-\left(\nabla f(x_k)^{T} \nabla f(x_k)\right)^{2}
-  /\left(\nabla f(x_k)^{T} Q \nabla f(x_k)\right) \\
+  &=\left\|x_{k}-x^{*}\right\|_{Q}^{2}-2 \alpha \nabla f(x_k)^{T} \nabla f(x_k)
+  +\alpha^{2}\nabla f(x_k)^{T} Q \nabla f(x_k) \\
+  &=\left\|x_{k}-x^{*}\right\|_{Q}^{2}-
+  2 \frac{\nabla f(x_k)^{T} \nabla f(x_k)}{\nabla f(x_k)^{T} Q \nabla f(x_k)}
+    \nabla f(x_k)^{T} \nabla f(x_k)
+    +
+    \left(\frac{\nabla f(x_k)^{T} \nabla f(x_k)}{\nabla f(x_k)^{T} Q \nabla f(x_k)}\right)^2
+    \nabla f(x_k)^{T} Q \nabla f(x_k)\\
+  &=\left\|x_{k}-x^{*}\right\|_{Q}^{2}-
+    \frac{2\left(\nabla f(x_k)^{T} \nabla f(x_k)\right)^{2}}
+         {\nabla f(x_k)^{T} Q \nabla f(x_k)}
+    +
+    \frac{\left(\nabla f(x_k)^{T} \nabla f(x_k)\right)^{2}}
+         {\nabla f(x_k)^{T} Q \nabla f(x_k)} \\
+  &=\left\|x_{k}-x^{*}\right\|_{Q}^{2}
+  -\frac{\left(\nabla f(x_k)^{T} \nabla f(x_k)\right)^{2}}
+        {\nabla f(x_k)^{T} Q \nabla f(x_k)} \\
   &=\left\|x_{k}-x^{*}\right\|_{Q}^{2}\left[1-\frac{\left(\nabla f(x_k)^{T} \nabla
       f(x_k)\right)^{2}}{\left(\nabla f(x_k)^{T} Q \nabla f(x_k)\right)\left\|x_{k}-x^{*}\right\|_{Q}^{2}}\right]\\
   \end{aligned} 
@@ -186,41 +224,46 @@ $Q$. The Ellipsoid function is given by:
 f_{1}(x)=\sum_{i=1}^{d} \alpha^{\frac{i-1}{d-1}} x_{i}^{2}
 \]
 In matrix form, it can be represented as $f_1(x) =\mathbf{x}^T\mathbf{Qx}$, where
-\[
-\mathbf{Q} = 
-\begin{pmatrix}
-1 & 0 & 0 & 0 & 0 \\
-0 & \alpha^{\frac{1}{4}} & 0 & 0 & 0 \\
-0 & 0 & \alpha^{\frac{2}{4}} & 0 & 0  \\
-0 & 0 & 0 & \alpha^{\frac{3}{4}} & 0  \\
-0 & 0 & 0 & 0 & \alpha  \\
-\end{pmatrix}
-\]
+$\mathbf{Q}$ is a diagonal matrix with values:
+$[1, \alpha^{\frac{1}{4}}, \alpha^{\frac{2}{4}}, \alpha^{\frac{3}{4}}, \alpha]$
+%% \[
+%% \mathbf{Q} = 
+%% \begin{pmatrix}
+%% 1 & 0 & 0 & 0 & 0 \\
+%% 0 & \alpha^{\frac{1}{4}} & 0 & 0 & 0 \\
+%% 0 & 0 & \alpha^{\frac{2}{4}} & 0 & 0  \\
+%% 0 & 0 & 0 & \alpha^{\frac{3}{4}} & 0  \\
+%% 0 & 0 & 0 & 0 & \alpha  \\
+%% \end{pmatrix}
+%% \]
 for $d=5$. Therefore $\lambda_1 = 1$ and $\lambda_n = \alpha$, and bound would
 equal:
 \[
 g(k) \leq \left(\frac{\alpha-1}{\alpha + 1}\right)^2
 \]
-I validate this bound empirically for different values of $\alpha$. The plot of
+I validate this bound empirically for different values of conditioning,
+$\kappa(Q) = \frac{\lambda_n}{\lambda_1} = \alpha$. The plot of
 the results can be seen on Figure \ref{plt3}. It can be seen that the bound
-holds and becomes more and more lose for higher values of $\alpha$.
+holds for all values of $\alpha$.
 
 \begin{figure}[]
     \centering
     \includegraphics[width=0.7\textwidth]{plt_bound.png}
-    \caption{Plot of $g(k)$ and bound 3.29 for the Ellipsoid function with $d=5$ different values of $\alpha$}
+    \caption{Plot of $g(k)$ and bound 3.29 for the Ellipsoid function with $d=5$ and $\kappa(Q) = \alpha \in \{10, 100, 1000\}$}
   \label{plt3}
 \end{figure}
 
 
 \section{Conclusion}
-I have implemented both the steepest descent and Newton's method using the
-backtracking line search in order to find the step size. The results show that
-the Newton's method outperforms Gradient descent for all case functions,
+I have implemented the steepest descent and Newton's method minimizers using the
+backtracking line search (Algorithm 3.1) to find the step size.
+The convergence plots, that I have provided, demonstrate that
+the Newton's method outperforms steepest descent for all case functions,
 and there is an asymptotic difference between the convergence rates of the
-Steepest Descent and Newton's method. The gradient descent especially struggles
-with the first three functions. However, both methods manage to find the optima
-of all functions.
+Steepest Descent and Newton's method, former being linear and latter being quadratic,
+which agrees with the theorems in the book.
+The gradient descent particularly struggles with the first three functions.
+However, both methods manage to find the optima of all functions.
 
 \end{document}
 

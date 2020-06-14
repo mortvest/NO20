@@ -53,8 +53,18 @@
 \maketitle
 \section{The Setup}
 For this assignment, I used Python and the \texttt{minimize} function from the
-\texttt{scipy.optimize}. I used the BFGS optimizer, which belongs to the family
-of quasi-Newton optimizers and has following parameters:
+\texttt{scipy.optimize}. For the minimizer, I have decided to use the BFGS optimizer, since
+it is the default choice for the unconstrained optimization in this library. BFGS stands for
+Broyden–Fletcher–Goldfarb–Shanno algorithm and belongs to the family
+of quasi-Newton optimizers that is a state-of-the-art alternative to Newton methods, but does
+not require a Hessian matrix. It can also be classified as a Line-Search and
+algorithm, where we first determine the direction $p_k$ and the step length
+in that direction $\alpha$ afterwards.
+
+\subsection{Parameters}
+The \texttt{scipy} implementation of the BFGS algorithm has following
+parameters:
+
 \begin{itemize}
 \item \emph{maxiter} - Maximum number of iterations to perform.
 \item \emph{gtol} - Gradient norm must be less than gtol before successful termination.
@@ -67,7 +77,19 @@ the \emph{norm}. \emph{eps} was not used, since I we have implemented a gradient
 for all five functions and we do not need to approximate it.
 For all the functions, I have used a dimensionality of two.
 
-\section{Testing protocol}
+\section{Testing}
+\subsection{What constitutes a good testing protocol?}
+According to Chapter 1 in the book, good optimization algorithms should possess
+following properties:
+\begin{itemize}
+\item \textbf{Robustness}
+\item \textbf{Efficiency}
+\item \textbf{Accuracy}
+\end{itemize}
+There existing data aggregation methods include: minimum, maximum,
+average(mean), median, variance, standard deviation.
+
+\subsection{My testing protocol}
 In order to test the effectiveness of the BFGS implementation from the
 \texttt{scipy.optimize}, I came up with a testing protocol, where I use
 two measures of performance:
@@ -87,24 +109,47 @@ to minimize the effect of the outliers,
 which is important due to the stochastic nature of the algorithm. 
 
 
-\section{Convergence Plots}
+\section{Results}
 \label{sec:conv}
+\subsection{Convergence Plots}
+\label{subsec:label}
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{plt.png}
-  \caption{Convergence Plots for BFGS, averaged over 100 runs. Y-axis shows the
-    Euclidean distance to the optimum of each $f_1,...,f_7$ with random starting point. (log-scale) }
+  \includegraphics[width=0.75\textwidth]{plt_dists.png}
+  \caption{Convergence Plot for BFGS, median of 100 runs. Y-axis shows the
+    Euclidean distance to the optimum of each $f_1,...,f_7$ with random starting point}
   \label{plt1}
 \end{figure}
 
-\section{Number of Iterations For all Functions}
-\label{sec:label}
+
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{hist.png}
-  \caption{Number of required iterations needed by BFGS to reach $||\nabla f|| < 10^{-5}$, averaged over 100 runs with random starting point}
+  \includegraphics[width=0.75\textwidth]{plt_grad_norms.png}
+  \caption{Convergence Plots for BFGS, median over 100 runs. Y-axis shows the
+    norm of the gradient of each $f_1,...,f_7$ with random starting point}
   \label{plt2}
 \end{figure}
+
+\subsection{Other Metrics}
+\label{subsec:label}
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|l|l|l|}
+\hline
+                 & $f_1$ & $f_2$   & $f_3$  & $f_4$  & $f_5$ \\ \hline
+efficiency & $7$ & $68$ & $16$ & $14$ & $12$ \\ \hline
+accuracy & $1.877e-8$  & $3.864e-7$ & $1.426e-13$  & $6.512e-7$  & $8.72e-5$ \\ \hline
+\end{tabular}
+\caption{Average number of iterations until algorithm termination ( $\| \nabla f \| < 1e-5$) and final distance to the optimum for 100 random starting points in the interval $[-10,10]$}
+\label{table}
+\end{table}
+
+%% \begin{figure}[H]
+%%   \centering
+%%   \includegraphics[width=\textwidth]{hist.png}
+%%   \caption{Number of required iterations needed by BFGS to reach $||\nabla f|| < 10^{-5}$, averaged over 100 runs with random starting point}
+%%   \label{plt2}
+%% \end{figure}
 
 \section{Theoretical Part}
 \subsection{}
@@ -136,11 +181,14 @@ where the convexity makes the optimizer converge on the optimum.
 
 \subsection{}
 \subsubsection{}
-For $d=1$:
+For $d=1$, the Log-Ellipsoid function could be formulated as:
+\[
+  f_3(x) = \log(\epsilon + x^2) 
+\]
+Hence, the derivatives:
 \begin{align*}
-f_3(x) &= \log(\epsilon + x^2) \\
-f_3'(x) &= \frac{2x}{\epsilon + x^2} \\
-f_3''(x) &= \frac{2(\epsilon - x^2)}{(\epsilon + x^2)^2}
+  f_3'(x) &= \frac{2x}{\epsilon + x^2} \\
+  f_3''(x) &= \frac{2(\epsilon - x^2)}{(\epsilon + x^2)^2}
 \end{align*}
 For $|x| < \epsilon$, $(\epsilon - x^2) > 0$, hence $f_3''(x) > 0$, and $f_3$
 would be strictly convex.

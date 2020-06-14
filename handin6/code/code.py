@@ -70,6 +70,7 @@ def coordinate_descent(A, b, mins, maxs, epsilon=1e-5, max_iter=1000):
 
     g = A @ x + b
     for it in range(max_iter):
+        print(g, x)
         if DEBUG:
             print("Iteration", it)
         for i in range(b.shape[0]):
@@ -81,6 +82,7 @@ def coordinate_descent(A, b, mins, maxs, epsilon=1e-5, max_iter=1000):
         n_bounded_vars[it] = n_bounded
         if DEBUG:
             print("alpha: {}, x: {}, h: {}, h_norm: {}".format(alpha, x, h, h_norm))
+        print(g, x)
         if h_norm < epsilon:
             break
     if DEBUG:
@@ -261,16 +263,16 @@ def main():
     # hnorms_2d = np.expand_dims(hnorms_2d, axis=0)
     # plotgraph(hnorms_2d, None, [r"2D problem $\beta=0.999$"], r"norm of $h$", "hnorms_2d", aspect_ratio=0.35, log=True)
 
-    print("Testing convergence multi")
-    hnorms_3d, _, _ = performance_measure1(d=5, max_iter=1000)
-    hnorms_5d, _, _ = performance_measure1(d=10, max_iter=1000)
-    hnorms_10d, _, _ = performance_measure1(d=15, max_iter=1000)
-    hnorms = np.vstack([hnorms_3d, hnorms_5d, hnorms_10d])
+    # print("Testing convergence multi")
+    # hnorms_3d, _, _ = performance_measure1(d=5, max_iter=1000)
+    # hnorms_5d, _, _ = performance_measure1(d=10, max_iter=1000)
+    # hnorms_10d, _, _ = performance_measure1(d=15, max_iter=1000)
+    # hnorms = np.vstack([hnorms_3d, hnorms_5d, hnorms_10d])
 
-    labels = [r"$d=5$",
-              r"$d=10$",
-              r"$d=15$"]
-    plotgraph(hnorms, None, labels, r"norm of $h$", "hnorms", log=True)
+    # labels = [r"$d=5$",
+    #           r"$d=10$",
+    #           r"$d=15$"]
+    # plotgraph(hnorms, None, labels, r"norm of $h$", "hnorms", log=True)
 
     # print("Testing dimensionality")
     # ds = [i for i in range(1,20)]
@@ -278,11 +280,14 @@ def main():
     # n_iter = np.expand_dims(n_iter, axis=0)
     # plotgraph(n_iter, None, ["Dimensionality test"], r"number of iterations", "dim", x_label="d", marker="o", aspect_ratio=0.9)
 
-    # A = np.array([[2,1], [1,1]])
-    # b = np.array([3,4])
-    # mins = np.array([-75, -75])
-    # maxs = np.array([-50, -50])
-    # run_test(A, b, mins, maxs)
+    A = np.array([[2,1], [1,1]])
+    b = np.array([3, 4])
+    # b = np.array([0,0])
+    mins = np.array([-75, -75])
+    maxs = np.array([-50, -50])
+    # mins = np.array([5, 5])
+    # maxs = np.array([7, 7])
+    run_test(A, b, mins, maxs)
 
     # A, _, mins, maxs = create_quadratic_problem(2)
     # b = np.array([0.0001, 0.00003])
