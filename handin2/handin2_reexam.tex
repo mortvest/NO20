@@ -90,15 +90,20 @@ following properties:
   the starting point $x_0$.
 \item \textbf{Efficiency}. A good optimization algorithm should not consume too
   much computational resources (and memory/storage).
-\item \textbf{Accuracy}. Good optimization algorithms should find the minima
-  accurately to some tolerance $\varepsilon$.
+\item \textbf{Accuracy}. Good optimization algorithms should find the optima
+  with high precision. Normally to some tolerance $\varepsilon$ on the gradient
+  magnitude or distance to the optimum.
 \end{itemize}
 In order to process and then visualize the gathered data from the experiments, I
-must use one of the existing aggregation methods. These include: minimum, maximum,
-average(mean), median, variance, standard deviation. I decided both to use the
+must use one of the existing aggregation methods. These include: min/max,
+average(mean), median, variance, standard deviation, mode and range. I decided to use the
 median and the mean. The main difference between these methods is how they
 manage the influence of the outliers. When using the mean, we maintain the
-influence of the outliers in the set, while it is excluded when using the median.
+influence of the outliers in the set, while it is excluded when using the
+median. If we choose to calculate the mean, we can augment it by providing the
+standard deviation of the dataset in order to see how much the samples stray
+from the mean.
+
 
 \subsection{My testing protocol}
 In order to test the effectiveness of the BFGS implementation from the
@@ -127,6 +132,18 @@ In order to test the effectiveness of the BFGS implementation from the
   can be seen on Figure \ref{plt2}.
 \end{itemize}
 
+\begin{table}[]
+\centering
+\begin{tabular}{|l|l|l|l|l|l|}
+\hline
+                 & $f_1$ & $f_2$   & $f_3$  & $f_4$  & $f_5$ \\ \hline
+efficiency & $7$ & $68$ & $16$ & $14$ & $12$ \\ \hline
+accuracy & $1.877e-8$  & $3.864e-7$ & $1.426e-13$  & $6.512e-7$  & $8.72e-5$ \\ \hline
+\end{tabular}
+\caption{Median number of iterations until algorithm termination ( $\| \nabla f \| < 1e-5$) and final distance to the optimum for 100 random starting points in the interval $[-10,10]$}
+\label{table}
+\end{table}
+
 \begin{figure}[]
   \centering
   \includegraphics[width=0.8\textwidth]{plt_dists.png}
@@ -142,64 +159,79 @@ In order to test the effectiveness of the BFGS implementation from the
     norm of the gradient of each $f_1,...,f_7$ with random starting point}
   \label{plt2}
 \end{figure}
-
-\begin{table}[]
-\centering
-\begin{tabular}{|l|l|l|l|l|l|}
-\hline
-                 & $f_1$ & $f_2$   & $f_3$  & $f_4$  & $f_5$ \\ \hline
-efficiency & $7$ & $68$ & $16$ & $14$ & $12$ \\ \hline
-accuracy & $1.877e-8$  & $3.864e-7$ & $1.426e-13$  & $6.512e-7$  & $8.72e-5$ \\ \hline
-\end{tabular}
-\caption{Median number of iterations until algorithm termination ( $\| \nabla f \| < 1e-5$) and final distance to the optimum for 100 random starting points in the interval $[-10,10]$}
-\label{table}
-\end{table}
-
-%% \begin{figure}[H]
-%%   \centering
-%%   \includegraphics[width=\textwidth]{hist.png}
-%%   \caption{Number of required iterations needed by BFGS to reach $||\nabla f|| < 10^{-5}$, averaged over 100 runs with random starting point}
-%%   \label{plt2}
-%% \end{figure}
-
 \section{Theoretical Part}
 \subsection{}
-\subsubsection{}
-Since $A \in \mathbb{R}^{d\times d}$ is invertible, $g(x) = Ax$ would constitute a linear map
-$\mathbb{R}^n \rightarrow \mathbb{R}^n$. Linear transformations preserve the
-ratios of lengths, therefore the inequality
+Since $A \in \mathbb{R}^{d\times d}$ is invertible, $g(x) = Ax$ would constitute
+a one-to-one linear transformation $\mathbb{R}^n \rightarrow \mathbb{R}^n$.
+Which means that if $b, c \in \mathbb{R}^n$ and $b \neq c$ then $Ab \neq Ac$.
+By applying the transformation, points
+$x$ and $y$ would be moved into new positions $z = Ax$ and $w = Ay$, and
+inequality:
 \[
-f(\alpha(A x)+(1-\alpha)(A y)) \leq \alpha f(A x)+(1-\alpha) f(A y), \text { for all } \alpha \in[0,1]
+\begin{aligned}
+  f(A\left(\alpha x + (1 - \alpha) y\right)
+  &=f(\alpha(A x)+(1-\alpha)(A y))\\
+  &=f(\alpha z+(1-\alpha)w)\\
+  &< \alpha f(z)+(1-\alpha) f(w), \text { for all } \alpha \in(0,1)
+\end{aligned}
 \]
-would still hold, since we know that $f$ is strictly convex and therefore:
-\[
-f(\alpha(x)+(1-\alpha)(y)) \leq \alpha f(x)+(1-\alpha) f(y), \text { for all } \alpha \in[0,1]
-\]
-\subsubsection{}
-We start by looking at an expression $x^TQx$. We know that $Q$ is symmetric
-positive definite, hence we can use Cholesky decomposition and obtain following:
+would hold, since we stay in the convex domain of function $f$, which is
+$\mathbb{R}^n$, function $f$ is strictly convex, and $z\neq w$.\\\\
+I will show that the function $f(y) = y^Ty$ is strictly convex by showing
+that for all $\alpha \in (0,1)$ and $x \neq y$:
+\begin{align*}
+  f(\alpha x + (1-\alpha)y) &< \alpha f(x) + (1 - \alpha) f(y)\\
+  %% --
+  (\alpha x + (1 - \alpha) y)^T (\alpha x + (1 - \alpha)
+  &<
+  \alpha x^Tx + (1-\alpha) y^Ty\\
+  %% --
+  \alpha^2 x^Tx + \alpha(1-\alpha) y^Tx + \alpha(1-\alpha) x^Ty + (1-\alpha)^2 y^Ty
+  &<
+  \alpha x^Tx + (1-\alpha) y^Ty\\
+  %% --
+  (\alpha^2 - \alpha) x^Tx + \alpha(1-\alpha) y^Tx + \alpha(1-\alpha) x^Ty +
+  ((1-\alpha)^2 - (1-\alpha)) y^Ty
+  &<
+  0\\
+  %% --
+  %% \alpha(\alpha - 1) x^Tx + 2\alpha(1-\alpha) x^Ty + \alpha(\alpha - 1)y^Ty
+  %% &< 0\\
+  %% --
+  (\alpha - 1) x^Tx + 2(1-\alpha) x^Ty + (\alpha - 1)y^Ty
+  &< 0\\
+  %% --
+  (\alpha - 1) (x^Tx - 2x^Ty + y^Ty)
+  &< 0\\
+  %% --
+  (\alpha - 1) (x - y)^T(x - y)
+  &< 0
+\end{align*}
+$\alpha \in (0,1)$, hence $(\alpha - 1) < 0$. $x \neq y$, hence $(x - y) \neq 0$
+and $(x - y)^T(x - y) > 0$. Therefore the LHS is always negative and $f$ is
+strictly convex. \\\\
+I then look at an expression $x^TQx$. I know that $Q$ is symmetric
+positive definite, hence I can use Cholesky decomposition and obtain following:
 $x^TQx = x^TLL^Tx$, where $L$ is triangular matrix with positive diagonal
 values, hence invertible.\\\\
-Let $f(y) = y^Ty$, then $\nabla f(y) = 2y$ and $\nabla^2 f(y) = 2I$. $2I$ is
-PD, therefore $f(y)$ is strictly convex. Then, if we set $y=L^Tx$,we get:
+Then, if I set $y=L^Tx$,we get:
 \[
 f(y) = f(Lx) = x^TLL^Tx = x^TQx
 \]
 $x^TQx$ is therefore strictly convex, since $f(x)$ is convex and 
-property from the previous subsection holds. \\\\
+multiplication by an invertible matrix maintains the strict convexity of a function. \\\\
 This point is relevant for quadratic-based functions such as $f_1$ and $f_2$,
-where the convexity makes the optimizer converge on the optimum.
+where the convexity makes the Newton-based methods converge on the optimum.
+This is however not particularly relevant for the BFGS optimizer, since it
+belongs to the Quasi-Newton family of optimizers and we do not use
+Hessian.
 
 \subsection{}
-\subsubsection{}
-For $d=1$, the Log-Ellipsoid function could be formulated as:
-\[
-  f_3(x) = \log(\epsilon + x^2) 
-\]
-Hence, the derivatives:
+For $d=1$, the Log-Ellipsoid function and the derivatives are:
 \begin{align*}
-  f_3'(x) &= \frac{2x}{\epsilon + x^2} \\
-  f_3''(x) &= \frac{2(\epsilon - x^2)}{(\epsilon + x^2)^2}
+  f_3(x) = \log(\epsilon + x^2) \quad
+  f_3'(x) = \frac{2x}{\epsilon + x^2} \quad
+  f_3''(x) = \frac{2(\epsilon - x^2)}{(\epsilon + x^2)^2}
 \end{align*}
 For $|x| < \epsilon$, $(\epsilon - x^2) > 0$, hence $f_3''(x) > 0$, and $f_3$
 would be strictly convex.
@@ -210,14 +242,16 @@ Hence, for $|x| \geq \epsilon$, $-f_3''(x) \geq 0$, which means that $-f_3$ is
 convex, hence $f_3$ is concave for $|x| \geq \epsilon$.\\\\
 This could potentially be problematic if the gradient-based optimizer gets its current value of
 $x>|\epsilon|$, then it would fail finding an optimum, because it could continue
-moving in that direction for an indefinite amount of time or until the number of
-iterations reaches the predefined limit. 
+moving in that direction until the number of iterations reaches the predefined limit. 
 
 \section{Conclusion}
-Based on the results of application of the two performance metrics, the
+Based on the results of the performance metrics,
 \texttt{scipy} implementation of the BFGS optimizer managed to find the minima
-of all case functions. It struggled most with the Rosenbrock function, due to its
-elongated and curved iso-level.
+of all case functions. While it struggled with the Rosenbrock function, due to its
+elongated and curved iso-level, I can conclude that the BFGS implementation for
+\texttt{scipy} is robust, effective and accurate, and therefore constitutes a
+good optimization algorithm for a wide variety of unconstrained problems for $d=2$.
+
 
 \end{document}
 
