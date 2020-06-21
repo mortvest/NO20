@@ -7,75 +7,40 @@ from matplotlib.ticker import MaxNLocator
 from functions import *
 
 
-def changeH(H, b=1e-8):
-    eig_val = np.linalg.eig(H)[0]
-    eig_vec = np.linalg.eig(H)[1]
+def lowerBoundLambda(B, eps=0.0001):
+    eigvals = np.linalg.eig(B)[0]
+    lambda_1 = np.min(eigvals)
+    return -np.min(eigvals) + eps
 
-    eig_val[eig_val <= 0] = b
+def isPosDef(B):
+    return np.min(np.linalg.eig(B)[0]) > 0
 
-    res = np.zeros(H.shape)
-    for i in range(eig_val.shape[0]):
-        v = eig_vec[:,i].reshape(2, 1)
-        res += eig_val[i] * (v * v.T)
+def insideRegion(B, g, delta):
+    return np.linalg.norm(np.linalg.inv(B) @ g) <= delta
 
-    return res
+def find_p(g, B, delta, max_iter=10):
+    lambda_l = lowerBoundLambda(B)
 
-
-def isPostiveDef(H):
-    eig = np.linalg.eigh(H)[0]
-    return not np.any(eig <= 0)
-
-
-def lowerBoundLambda(B,mylambda = 0,epsilon=1e-3):
-    RTR = B + np.diag([mylambda] * B.shape[0])
-    eigh_val = np.linalg.eigh(RTR)[0]
-    minval = min(eigh_val)
-
-    return max(-minval, 0)
-
-
-def find_p(g, B, step_length, max_iter=10, alpha=0.99):
-    if isPostiveDef(B):
-        p0 = -np.dot(np.linalg.inv(B), g)
-        if np.linalg.norm(p0) < step_length:
-            return p0
-
-    # find lower bound for which lamba makes B PD
-    minBound = lowerBoundLambda(B)
-    # mylambda = minBound + 1e-10
-    mylambda = minBound + 1e-7
+    if isPosDef(B) and insideRegion(B, g, delta):
+        return np.linalg.solve(B, -g)
 
     for _ in range(max_iter):
-        RTR = B + np.diag([mylambda] * B.shape[0])
+        RTR = B + np.diag(np.repeat(lambda_l, B.shape[0]))
 
-        try:
-            R = np.linalg.cholesky(RTR)
-        except Exception as e:
-            print(e)
-            print("RTR:", RTR)
-            print("B:", B)
-            print("mylambda", mylambda)
-            print("eig", np.linalg.eigh(RTR))
-            # traceback.print_exc()
-            exit()
+        R = np.linalg.cholesky(RTR)
 
         p = np.linalg.solve(RTR, -g)
         q = np.linalg.solve(R,p)
 
         lambdaChange = (np.linalg.norm(p) / np.linalg.norm(q)) ** 2 * \
-                       ((np.linalg.norm(p) - step_length) / step_length)
+                       ((np.linalg.norm(p) - delta) / delta)
 
-        n = 0
-        while (mylambda + alpha**n * lambdaChange) < minBound:
-            n += 1
-        mylambda = mylambda + alpha**n * lambdaChange
+        lambda_l = lambda_l + lambdaChange
     return p
 
 
 def evaluate_rho(f, m, x, p, g, B):
-    # print("f(x)", f(x), "m(...)", m(p, x, f, g, B))
-    # print("p", p, "x", x, "norm p", np.linalg.norm(p))
-    return (f(x) - f(x + p)) / (f(x) - m(p + np.finfo(float).eps, x, f, g, B))
+    return (f(x) - f(x + p)) / (f(x) - m(p, x, f, g, B) + np.finfo(float).eps)
 
 
 def trust_region(f, f_d1, f_d2, optimum, x, max_iter=1000, max_trust_radius=1000 ,eta=0.2, epsilon=1e-7):
@@ -85,33 +50,44 @@ def trust_region(f, f_d1, f_d2, optimum, x, max_iter=1000, max_trust_radius=1000
     trust_radius = 1
     trust_radia = np.zeros(max_iter)
     opt_dists = np.zeros(max_iter)
+    grad_norms = np.zeros(max_iter)
+
+    max_i = 0
 
     for i in range(max_iter-1):
         # print("i", i)
         trust_radia[i] = trust_radius
-        opt_dists[i] = np.linalg.norm(optimum-x)
+        opt_dists[i] = np.linalg.norm(optimum - x)
+        # print("curr x", x)
 
         g = f_d1(x)
+
+        grad_norms[i] = np.linalg.norm(g)
+
         B = f_d2(x)
-        p = find_p(g,B,trust_radius)
-        rho = evaluate_rho(f,m,x,p,g,B)
-        # print("trust_radius:", trust_radius)
+        p = find_p(g, B, trust_radius)
+        rho = evaluate_rho(f, m, x, p, g, B)
+
         if rho < 1/4:
             trust_radius *= 1/4
         elif rho > 3/4 and np.linalg.norm(p) == trust_radius:
             trust_radius = min(2 * trust_radius, max_trust_radius)
 
+        # print(p, rho)
         if rho > eta:
             x += p
 
-        # distance = np.linalg.norm(g)
         distance = np.linalg.norm(p)
+        # print(x)
+        max_i = i
         if distance < epsilon:
             break
 
-    trust_radia[i+1] = trust_radius
-    opt_dists[i+1] = np.linalg.norm(optimum-x)
-    return x, i+2, trust_radia, opt_dists
+
+    opt_dists[i+1] = np.linalg.norm(optimum - x)
+    # print(opt_dists[:i+1])
+
+    return x, max_i, trust_radia, opt_dists, grad_norms
 
 
 def performanceMessure(funs, funs_d1, funs_d2, funs_min, n_repeats=100, box_size=10):
@@ -119,6 +95,7 @@ def performanceMessure(funs, funs_d1, funs_d2, funs_min, n_repeats=100, box_size
     accuracy = []
     efficiency = []
     trust_radia = []
+    grad_norms = []
     opt_dists = []
 
     for i, (fun, fun_d1, fun_d2, fun_min) in enumerate(zip(funs, funs_d1, funs_d2, funs_min)):
@@ -127,24 +104,33 @@ def performanceMessure(funs, funs_d1, funs_d2, funs_min, n_repeats=100, box_size
         efficiency_acc = np.zeros(n_repeats)
         dists_acc = []
         radia_acc = []
+        grad_norms_acc = []
         for j in range(n_repeats):
             x = np.random.uniform(-box_size, box_size, 2)
-            new_x, iteration, trust_r, opt_d = trust_region(fun, fun_d1, fun_d2, fun_min, x)
+            new_x, iteration, trust_r, opt_d, grad_n = trust_region(fun, fun_d1, fun_d2, fun_min, x)
             accuracy_acc[j] = np.linalg.norm(fun_min - new_x)
             efficiency_acc[j] = iteration
             dists_acc.append(np.array(opt_d))
             radia_acc.append(np.array(trust_r))
+            grad_norms_acc.append(np.array(grad_n))
 
-        accuracy.append(np.mean(accuracy_acc))
-        efficiency.append(np.mean(efficiency_acc).astype(int))
-        opt_dists.append(np.mean(np.array(dists_acc), axis=0))
-        trust_radia.append(np.mean(np.array(radia_acc), axis=0))
+        # accuracy.append(np.mean(accuracy_acc))
+        # efficiency.append(np.mean(efficiency_acc).astype(int))
+        # opt_dists.append(np.mean(np.array(dists_acc), axis=0))
+        # trust_radia.append(np.mean(np.array(radia_acc), axis=0))
+        # grad_norms.append(np.mean(np.array(grad_norms_acc), axis=0))
+        accuracy.append(np.median(accuracy_acc))
+        efficiency.append(np.median(efficiency_acc).astype(int))
+        opt_dists.append(np.median(np.array(dists_acc), axis=0))
+        trust_radia.append(np.median(np.array(radia_acc), axis=0))
+        grad_norms.append(np.median(np.array(grad_norms_acc), axis=0))
 
-    return np.array(accuracy), np.array(efficiency), np.array(trust_radia), np.array(opt_dists)
+    return np.array(accuracy), np.array(efficiency), np.array(trust_radia), np.array(opt_dists), np.array(grad_norms)
+
 
 
 def plotgraph(Y, max_ns, fun_labels, y_label, file_name, log=False,
-                                                         max_x_factor=1,
+                                                         max_x_factor=1.5,
                                                          plt_dim=10,
                                                          aspect_ratio=1.3,
                                                          color="green"):
@@ -156,64 +142,65 @@ def plotgraph(Y, max_ns, fun_labels, y_label, file_name, log=False,
         ax.set_title(label)
         plt.xlabel("number of iterations")
 
-        max_y = int(max_ns[i] * max_x_factor)
+        max_y = int(max_ns[i] * max_x_factor) + 1
+        Y += 1e-16
+        # max_y = max_ns[i] + 1
+        # print(Y[0,:max_y])
         if log:
             plt.ylabel(y_label)
-            plt.yscale("log")
-            # ax.plot(range(1, max_y+1), np.log10(Y[i,:max_y] + 1e-20), color=color)
+            # # ax.set_yscale('symlog', linthreshy=1e-5)
+            ax.set_yscale('log')
             ax.plot(range(1, max_y+1), (Y[i,:max_y]), color=color)
         else:
             plt.ylabel(y_label)
             ax.plot(range(1, max_y+1), Y[i,:max_y], color=color)
         # ax.legend()
     plt.subplots_adjust(hspace=0.4)
-    # plt.show()
-    plt.savefig("../imgs/plt_{}.png".format(file_name), bbox_inches ="tight")
+    plt.show()
+    # plt.savefig("../imgs/plt_{}.png".format(file_name), bbox_inches ="tight")
     plt.clf()
 
 
 
 def main():
-    # print(trust_region(Ellipsoid, Ellipsoid_d1, Ellipsoid_d2, Ellipsoid_min, [44, 33]))
-    # print(trust_region(Rosenbrock_Banana,Rosenbrock_Banana_d1,Rosenbrock_Banana_d2, Rosenbrock_Banana_min, [44,33]))
-
-    # op,iter,y=trust_region(Log_Ellipsoid, Log_Ellipsoid_d1, Log_Ellipsoid_d2, [44, 33])
-    # myplot(range(len(y)), y, "Iterations", 'The trust region radius', "Log_Ellipsoid")
-
-    # op, iter, y, dists = trust_region(Ellipsoid, Ellipsoid_d1, Ellipsoid_d2, Ellipsoid_min, [44, 33])
-    # myplot(range(len(y)),y,"n iterations",'Radius of the thrust region',r"$f_1$")
-    # myplot(range(len(y)),dists,"n iterations",'Euclidean distance to optimum',r"$f_1$")
-
-
-    # xs,ys=test_max_step()
-    # myplot(xs, ys, 'Max step length',"Iterations","Log_Ellipsoid")
-
     funs = [Ellipsoid, Rosenbrock_Banana, Log_Ellipsoid, Attractive_Sector5]
     funs_d1 = [Ellipsoid_d1, Rosenbrock_Banana_d1, Log_Ellipsoid_d1, Attractive_Sector5_d1]
     funs_d2 = [Ellipsoid_d2, Rosenbrock_Banana_d2, Log_Ellipsoid_d2, Attractive_Sector5_d2]
     funs_min = [Ellipsoid_min, Rosenbrock_Banana_min, Log_Ellipsoid_min, Attractive_Sector5_min]
     fun_labels=[r"$f_1$",r"$f_2$",r"$f_3$", r"$f_5$"]
 
-    # funs = [Ellipsoid, Rosenbrock_Banana, Attractive_Sector5]
-    # funs_d1 = [Ellipsoid_d1, Rosenbrock_Banana_d1, Attractive_Sector5_d1]
-    # funs_d2 = [Ellipsoid_d2, Rosenbrock_Banana_d2, Attractive_Sector5_d2]
-    # funs_min = [Ellipsoid_min, Rosenbrock_Banana_min, Attractive_Sector5_min]
-    # fun_labels=[r"$f_1$",r"$f_2$", r"$f_5$"]
 
-    # funs       = [Log_Ellipsoid]
-    # funs_d1    = [Log_Ellipsoid_d1]
-    # funs_d2    = [Log_Ellipsoid_d2]
-    # funs_min   = [Log_Ellipsoid_min]
-    # fun_labels = [r"$f_3$"]
+    # foo = 1
+
+    # funs = [funs[foo]]
+    # funs_d1 = [funs_d1[foo]]
+    # funs_d2 = [funs_d2[foo]]
+    # funs_min = [funs_min[foo]]
+    # fun_labels = [fun_labels[foo]]
 
 
-    accuracy, efficiency, trust_radia, opt_dists = performanceMessure(funs, funs_d1, funs_d2, funs_min)
+    accuracy, efficiency, trust_radia, opt_dists, grad_norms = performanceMessure(funs, funs_d1, funs_d2, funs_min, n_repeats=100)
     print(accuracy)
     print(efficiency)
 
+    # print(opt_dists[0,:efficiency[0] + 3])
+    # print(opt_dists[0, efficiency[0]:efficiency[0]+10])
+
     plotgraph(opt_dists, efficiency, fun_labels, "dist", "dist", log=True)
-    plotgraph(trust_radia, efficiency, fun_labels, "trust radius", "radius", log=True)
-    # trust_region(Log_Ellipsoid,Log_Ellipsoid_d1,Log_Ellipsoid_d2, Log_Ellipsoid_min, [10,10])
+    # plotgraph(grad_norms, efficiency, fun_labels, "grad_norms", "grad_norms", log=True)
+
+
+
+    # foo = 1
+    # f = funs[foo]
+    # f_d1 = funs_d1[foo]
+    # f_d2 = funs_d2[foo]
+    # optimum = funs_min[foo]
+
+    # # x_0 = np.array([4.0, 5.0])
+    # x_0 = np.random.uniform(-10, 10, 2)
+    # x, i, _, _, _ = trust_region(f, f_d1, f_d2, optimum, x_0)
+    # print(x)
 
 if __name__ == '__main__':
     main()

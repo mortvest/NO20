@@ -220,11 +220,11 @@ f(y) = f(Lx) = x^TLL^Tx = x^TQx
 \]
 $x^TQx$ is therefore strictly convex, since $f(x)$ is convex and 
 multiplication by an invertible matrix maintains the strict convexity of a function. \\\\
-This point is relevant for quadratic-based functions such as $f_1$ and $f_2$,
-where the convexity makes the Newton-based methods converge on the optimum.
-This is however not particularly relevant for the BFGS optimizer, since it
-belongs to the Quasi-Newton family of optimizers and we do not use
-Hessian.
+This result is relevant for quadratic functions such as the Ellipsoid
+function ($f_1$). The strict convexity of the function would mean that any
+interest point found by the algorithm would always be a global minima. Which can
+explain the fact that the Ellipsoid was the easiest function to find the minima for.
+
 
 \subsection{}
 For $d=1$, the Log-Ellipsoid function and the derivatives are:
