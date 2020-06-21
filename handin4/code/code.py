@@ -12,13 +12,16 @@ def lowerBoundLambda(B, eps=0.0001):
     lambda_1 = np.min(eigvals)
     return -np.min(eigvals) + eps
 
+
 def isPosDef(B):
     return np.min(np.linalg.eig(B)[0]) > 0
 
-def insideRegion(B, g, delta):
-    return np.linalg.norm(np.linalg.inv(B) @ g) <= delta
 
-def find_p(g, B, delta, max_iter=10):
+def insideRegion(B, g, delta):
+    return np.linalg.norm(np.linalg.solve(B, g)) <= delta
+
+
+def find_p(g, B, delta, max_iter=10, eps=1e-7):
     lambda_l = lowerBoundLambda(B)
 
     if isPosDef(B) and insideRegion(B, g, delta):
@@ -26,17 +29,49 @@ def find_p(g, B, delta, max_iter=10):
 
     for _ in range(max_iter):
         RTR = B + np.diag(np.repeat(lambda_l, B.shape[0]))
-
         R = np.linalg.cholesky(RTR)
-
         p = np.linalg.solve(RTR, -g)
         q = np.linalg.solve(R,p)
 
         lambdaChange = (np.linalg.norm(p) / np.linalg.norm(q)) ** 2 * \
                        ((np.linalg.norm(p) - delta) / delta)
 
+        if lambdaChange < eps:
+            break
         lambda_l = lambda_l + lambdaChange
     return p
+
+def solve_p(B, l, g):
+    return -np.linalg.inv(B + np.diag(np.repeat(l, B.shape[0]))) @ g
+
+# def find_p(g, B, delta, max_iter=10, eps=1e-17):
+#     lambda_0 = lowerBoundLambda(B)
+
+#     if isPosDef(B) and insideRegion(B, g, delta):
+#         return np.linalg.solve(B, -g)
+
+#     f = 1
+#     lambda_1 = lambda_0
+#     for i in range(100):
+#         lambda_1 += (2 ** f) * np.linalg.norm(lambda_0)
+#         f += 1
+#         curr_p = np.linalg.norm(solve_p(B, lambda_1, g))
+#         # print("i", i, "lambda_1", lambda_1, "curr_p", curr_p)
+#         if curr_p < delta:
+#             break
+
+#     for j in range(100):
+#         # print("j", j)
+#         lambda_prime = (lambda_0 + lambda_1) / 2
+#         if  np.linalg.norm(solve_p(B, lambda_prime, g)) > delta:
+#             lambda_0 = lambda_prime
+#         else:
+#             lambda_1 = lambda_prime
+#         if lambda_0 - lambda_1 < eps:
+#             break
+
+#     p = solve_p(B, lambda_1, g)
+#     return p
 
 
 def evaluate_rho(f, m, x, p, g, B):
@@ -52,9 +87,7 @@ def trust_region(f, f_d1, f_d2, optimum, x, max_iter=1000, max_trust_radius=1000
     opt_dists = np.zeros(max_iter)
     grad_norms = np.zeros(max_iter)
 
-    max_i = 0
-
-    for i in range(max_iter-1):
+    for i in range(max_iter - 1):
         # print("i", i)
         trust_radia[i] = trust_radius
         opt_dists[i] = np.linalg.norm(optimum - x)
@@ -73,21 +106,19 @@ def trust_region(f, f_d1, f_d2, optimum, x, max_iter=1000, max_trust_radius=1000
         elif rho > 3/4 and np.linalg.norm(p) == trust_radius:
             trust_radius = min(2 * trust_radius, max_trust_radius)
 
-        # print(p, rho)
         if rho > eta:
             x += p
 
         distance = np.linalg.norm(p)
-        # print(x)
-        max_i = i
         if distance < epsilon:
             break
 
 
-    opt_dists[i+1] = np.linalg.norm(optimum - x)
-    # print(opt_dists[:i+1])
+    opt_dists[i + 1] = np.linalg.norm(optimum - x)
+    trust_radia[i + 1] = trust_radius
 
-    return x, max_i, trust_radia, opt_dists, grad_norms
+    # print(opt_dists[:i+1])
+    return x, i, trust_radia, opt_dists, grad_norms
 
 
 def performanceMessure(funs, funs_d1, funs_d2, funs_min, n_repeats=100, box_size=10):
@@ -130,7 +161,7 @@ def performanceMessure(funs, funs_d1, funs_d2, funs_min, n_repeats=100, box_size
 
 
 def plotgraph(Y, max_ns, fun_labels, y_label, file_name, log=False,
-                                                         max_x_factor=1.5,
+                                                         max_x_factor=1.1,
                                                          plt_dim=10,
                                                          aspect_ratio=1.3,
                                                          color="green"):
@@ -143,7 +174,7 @@ def plotgraph(Y, max_ns, fun_labels, y_label, file_name, log=False,
         plt.xlabel("number of iterations")
 
         max_y = int(max_ns[i] * max_x_factor) + 1
-        Y += 1e-16
+        # Y += 1e-25
         # max_y = max_ns[i] + 1
         # print(Y[0,:max_y])
         if log:
@@ -179,6 +210,7 @@ def main():
     # fun_labels = [fun_labels[foo]]
 
 
+    # accuracy, efficiency, trust_radia, opt_dists, grad_norms = performanceMessure(funs, funs_d1, funs_d2, funs_min, n_repeats=100)
     accuracy, efficiency, trust_radia, opt_dists, grad_norms = performanceMessure(funs, funs_d1, funs_d2, funs_min, n_repeats=100)
     print(accuracy)
     print(efficiency)
@@ -186,12 +218,14 @@ def main():
     # print(opt_dists[0,:efficiency[0] + 3])
     # print(opt_dists[0, efficiency[0]:efficiency[0]+10])
 
-    plotgraph(opt_dists, efficiency, fun_labels, "dist", "dist", log=True)
-    # plotgraph(grad_norms, efficiency, fun_labels, "grad_norms", "grad_norms", log=True)
+    # plotgraph(opt_dists, efficiency, fun_labels, "dist", "dist", log=True)
+    # plotgraph(trust_radia[2:3], efficiency[2:3], fun_labels[2:3], r"$\Delta$", "radius", log=True)
+    # plotgraph(grad_norms, efficiency, fun_labels, r"$\|\nabla f\|$", "grad_norms", log=True)
+
+    plotgraph(trust_radia, efficiency, fun_labels, r"$\Delta$", "radius", log=True)
 
 
-
-    # foo = 1
+    # foo = 2
     # f = funs[foo]
     # f_d1 = funs_d1[foo]
     # f_d2 = funs_d2[foo]
