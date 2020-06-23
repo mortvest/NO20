@@ -65,12 +65,12 @@ I decided to implement and experiment with both methods. I
 validated the implementation by checking if all three conditions hold for the
 found value of $\lambda^*$.
 I determined experimentally that the first approach exhibits better performance
-and the minima of the case function are found in fewer iterations, hence it was
-chosen.
+and the minima of the case function are found in fewer iterations, hence is was
+used for the experiments, which results are described in this report.
 
 \subsubsection{Algorithm 4.3}
 \label{subsubsec:43}
-The first method, that I tried was from Section 4.3, and
+The first method, that I tried, was from Section 4.3 and
 Algorithm 4.3 in particular. It is based on root-finding Newton's Method and Cholesky
 factorization that is used to iteratively find the values of $\lambda$.\\\\
 I have added a safeguard, such that the Cholesky factorization always exists.
@@ -81,7 +81,8 @@ would be positive and indefinite Hessians would not cause any problems.\\\\
 The book does not specify any stopping criterion for the Algorithm 4.3. I
 decided to use a treshold parameter, such that the iteration would
 terminate when  $\| \lambda^{\ell} - \lambda^{\ell + 1} \| < \varepsilon $,
-where $\varepsilon$ is some small constant.dditionally, I have added a shortcut
+where $\varepsilon > 0$ is some small constant. \\\\
+Additionally, I have added a shortcut
 that is described on page 85 in the book. If $B$ is positive-definite and $\|
 B^{-1}g \| \leq \Delta$, the procedure can be terminated immediately with
 $\lambda^*= 0$. It is then easy to solve for $p^*$.
@@ -91,25 +92,38 @@ $\lambda^*= 0$. It is then easy to solve for $p^*$.
 \label{subsubsec:bijection}
 I start with the same value of $\lambda_0$ as in the previous method.
 Then I iteratively find the value of $\lambda_1$, I start by increasing
-$\lambda$ by $2^0 \cdot | \lambda_0$, then by $2^1 \cdot | \lambda_0$ and so on.
-This continues until I find a value of $\lambda_1$, s.t.
+$\lambda$ by $2^0 \lambda_0, 2^1 \lambda_0, ...$
+until I find a value of $\lambda_1$, s.t.
 $\| p(\lambda_1) \| <\Delta$. Afterwards, I execute the algorithm as specified
 in the assignment text. The algorithm details and the reasoning behind some of
-the desertions are described in Section \ref{sec:theory}. Finally, the procedure is
+my decisions are described in Section \ref{sec:theory}. Finally, the procedure is
 terminated when the interval size ($\lambda_0 - \lambda_1$) reaches some small
-constant $\varepsilon$.
+constant $\varepsilon > 0$.
 
 \subsection{The hard case}
 I have implemented the method, described on p.88, in order to handle the hard
-case. $\lambda$ would equal $-\lambda_1$, and I can find $p$ by first solving for $\tau$:
+case. $\lambda = -\lambda_1$, where $\lambda_1$ is the smallest eigenvalue of matrix
+$B$ and I can find $p$ by first solving for scalar $\tau$:
 \[
 p=\sum_{j: \lambda_{j} \neq \lambda_{1}} \frac{q_{j}^{T} g}{\lambda_{j}+\lambda}
 q_{j} + z\sqrt{\Delta - \sum_{j: \lambda_{j} \neq \lambda_{1}}
   \frac{\left(q_{j}^{T} g\right)^{2}}{\left(\lambda_{j}+\lambda\right)^{2}}}
 \]
+where $q_j$ is the j'th column of $Q$ in the eigenvalue decomposition of
+$B = Q\Lambda Q^T$ and $z$ is the eigenvector, corresponding to $\lambda_1$.
 However, I did not get to test my solution, since I could not detect the hard
 case happening in any of the case functions.
 
+\subsection{Calculation of $\rho$}
+The calculation of $\rho$ is an important part of the algorithm, and it is
+calculated by:
+\[
+\rho_{k}=\frac{f\left(x_{k}\right)-f\left(x_{k}+p_{k}\right)}{m_{k}(0)-m_{k}\left(p_{k}\right)}
+\]
+However, I have experienced a problem with minimization of some functions.
+The step was getting so small, that the denominator of the fraction above
+was disappearing. In order to prevent this from happening, I added a small
+constant (close to machine precision) to the denominator.
 
 \subsection{Parameters}
 I used following parameter values in my implementation. Some values were taken
@@ -124,16 +138,6 @@ from the literature, while others were determined empirically.
   the iterative solutions to the trust region sub-problem.
 \end{itemize}
 
-\subsection{Calculation of $\rho$}
-The calculation of $\rho$ is an important part of the algorithm, and it is
-calculated by:
-\[
-\rho_{k}=\frac{f\left(x_{k}\right)-f\left(x_{k}+p_{k}\right)}{m_{k}(0)-m_{k}\left(p_{k}\right)}
-\]
-However, I have experienced a problem with minimization of some functions.
-The step was getting so small, that the denominator of the fraction above
-was disappearing. Therefore, I have added a small constant (close to machine
-precision) to the denominator to prevent this from happening.
 
 
 \section{Testing protocol}
@@ -272,8 +276,12 @@ eigenvalues would stay positive.
 I have implemented the Trust Region algorithm, while experimenting with two
 iterative solutions to the trust region sub-problem.
 Algorithm manages to find the value of optimum of functions $f_1, f_2, f_3$ and
-$f_5$ and its performance is much better than the Steepest Descent method, but
-worse than the Newtons method that I have implemented in Assignment 3.
+$f_5$ and its performance is much better than the Steepest Descent method, and
+close, but a little worse than Newtons method that I have implemented in Assignment 3.
+Theorem 4.9 and p. 95 in the book tell us that if
+$B = \nabla^2 f(x)$, and we were reasonable in choosing our steps, we have that
+the steps for the iterative solution would eventually resemble the Newton steps,
+and it is what we observe in the experimental results.
 
 \end{document}
 

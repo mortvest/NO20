@@ -1,85 +1,60 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
+import time
 
 from functions import *
 
 
-def changeH(H, b=1e-8):
-    eig_val = np.linalg.eig(H)[0]
-    eig_vec = np.linalg.eig(H)[1]
-
-    eig_val[eig_val <= 0] = b
-
-    res = np.zeros(H.shape)
-    for i in range(eig_val.shape[0]):
-        v = eig_vec[:,i].reshape(2, 1)
-        res += eig_val[i] * (v * v.T)
-
-    return res
+def lowerBoundLambda(B, eps=0.0001):
+    eigvals = np.linalg.eig(B)[0]
+    lambda_1 = np.min(eigvals)
+    return -np.min(eigvals) + eps
 
 
-def isPostiveDef(H):
-    eig = np.linalg.eigh(H)[0]
-    return not np.any(eig <= 0)
+def isPosDef(B):
+    return np.min(np.linalg.eig(B)[0]) > 0
 
 
-def lowerBoundLambda(B, mylambda=0, epsilon=1e-3):
-    RTR = B + np.diag([mylambda] * B.shape[0])
-    eigh_val = np.linalg.eigh(RTR)[0]
-    minval = min(eigh_val)
-
-    return max(-minval, 0)
+def insideRegion(B, g, delta):
+    return np.linalg.norm(np.linalg.solve(B, g)) <= delta
 
 
-# def solve_subproblem(g, B, step_length, max_iter=10, alpha=0.99):
-def solve_subproblem(g, B, step_length, max_iter=10, alpha=0.99):
-    if isPostiveDef(B):
-        p0 = -np.dot(np.linalg.inv(B), g)
-        if np.linalg.norm(p0) < step_length:
-            return p0
+def find_p(g, B, delta, max_iter=10, eps=1e-7):
+    lambda_l = lowerBoundLambda(B)
 
-    # find lower bound for which lamba makes B PD
-    minBound = lowerBoundLambda(B)
-    # mylambda = minBound + 1e-7
-    mylambda = minBound + 1e-6
+    if isPosDef(B) and insideRegion(B, g, delta):
+        return np.linalg.solve(B, -g)
 
+    # print("delta:", delta)
     for _ in range(max_iter):
-        RTR = B + np.diag([mylambda] * B.shape[0])
-
-        try:
-            R = np.linalg.cholesky(RTR)
-        except Exception as e:
-            print(e)
-            print("RTR:", RTR)
-            print("B:", B)
-            print("mylambda", mylambda)
-            print("eig", np.linalg.eigh(RTR))
-            # traceback.print_exc()
-            exit()
-
+        RTR = B + np.diag(np.repeat(lambda_l, B.shape[0]))
+        R = np.linalg.cholesky(RTR)
+        # try:
+        #     R = np.linalg.cholesky(RTR)
+        # except:
+        #     # print(np.linalg.norm(q))
+        #     exit()
         p = np.linalg.solve(RTR, -g)
         q = np.linalg.solve(R,p)
-
+        # print("pn norm", np.linalg.norm(p))
         lambdaChange = (np.linalg.norm(p) / np.linalg.norm(q)) ** 2 * \
-                       ((np.linalg.norm(p) - step_length) / step_length)
+                       ((np.linalg.norm(p) - delta) / delta)
 
-        n = 0
-        while (mylambda + alpha**n * lambdaChange) < minBound:
-            n += 1
-        mylambda = mylambda + alpha**n * lambdaChange
+        if lambdaChange < eps:
+            break
+        lambda_l = lambda_l + lambdaChange
     return p
 
 
-def updateB(B, y, s):
-    temp = (y - np.dot(B, s))
-    res = B + np.outer(temp, temp) / np.dot(temp, s)
 
+def updateB(B, y, s):
+    temp = (y - B @ s)
+    res = B + np.outer(temp, temp) / (temp @ s)
     return res
 
 
-def sr1_trust_region(f, f_d1, optimum, x, B, max_iter=1000, eta=0, epsilon=1e-7, r=1e-8):
-# def sr1_trust_region(f, f_d1, optimum, x, B, max_iter=10, eta=0, epsilon=1e-7, r=1e-8):
+def sr1_trust_region(f, f_d1, optimum, x, B, max_iter=1000, eta=1e-8, epsilon=1e-7, r=1e-8):
     trust_radius = 1
     opt_dists = np.zeros(max_iter)
     grad_norms = np.zeros(max_iter)
@@ -91,13 +66,14 @@ def sr1_trust_region(f, f_d1, optimum, x, B, max_iter=1000, eta=0, epsilon=1e-7,
         grad_norms[i] = grad_norm
         opt_dists[i] = np.linalg.norm(optimum - x)
 
-        s = solve_subproblem(g, B, trust_radius)
+        # print("delta:", trust_radius)
+        # print("g", np.linalg.norm(g))
+        s = find_p(g, B, trust_radius)
 
         y = f_d1(x + s) - g
         ared = f(x) - f(x + s)
-        pred = -(np.dot(g, s) + 0.5 * np.dot(np.dot(s, B), s))
+        pred = -(g @ s + 0.5 * s @ B @ s)
 
-        # print(ared, pred, grad_norm, trust_radius)
         if ared / pred > eta:
             x += s
 
@@ -106,16 +82,15 @@ def sr1_trust_region(f, f_d1, optimum, x, B, max_iter=1000, eta=0, epsilon=1e-7,
         elif 0.1 > ared / pred or ared / pred > 0.75:
             trust_radius *= 0.5
 
-        temp1 = abs(np.dot(s, y - np.dot(B, s)))
+        temp1 = abs(s @ (y - B @ s))
         temp2 = r * np.linalg.norm(s) * np.linalg.norm(y - np.dot(B, s))
 
         if temp1 >= temp2 and not np.isclose(y, np.dot(B, s)).all():
             B = updateB(B, y, s)
 
+        # time.sleep(1)
+        if trust_radius < epsilon or grad_norm < 1e-10:
         # if grad_norm < epsilon:
-        # print(np.linalg.norm(trust_radius))
-        # if np.linalg.norm(trust_radius) < epsilon:
-        if np.linalg.norm(trust_radius) < epsilon or grad_norm < epsilon:
             break
 
     grad_norms[i + 1] = grad_norm
@@ -148,12 +123,14 @@ def performanceMessure1(funs, funs_d1, funs_min, B, n_repeats=100, box_size=10):
             grad_norm_acc.append(np.array(grad_norm))
 
         # print(grad_norm_acc)
-        accuracy.append(np.mean(accuracy_acc))
-        efficiency.append(np.mean(efficiency_acc).astype(int))
-        opt_dists.append(np.mean(np.array(dists_acc), axis=0))
-        grad_norms.append(np.mean(np.array(grad_norm_acc), axis=0))
-        # opt_dists.append(np.median(np.array(dists_acc), axis=0))
-        # grad_norms.append(np.median(np.array(grad_norm_acc), axis=0))
+        # accuracy.append(np.mean(accuracy_acc))
+        # efficiency.append(np.mean(efficiency_acc).astype(int))
+        # opt_dists.append(np.mean(np.array(dists_acc), axis=0))
+        # grad_norms.append(np.mean(np.array(grad_norm_acc), axis=0))
+        accuracy.append(np.median(accuracy_acc))
+        efficiency.append(np.median(efficiency_acc).astype(int))
+        opt_dists.append(np.median(np.array(dists_acc), axis=0))
+        grad_norms.append(np.median(np.array(grad_norm_acc), axis=0))
 
     return np.array(accuracy), np.array(efficiency), np.array(grad_norms), np.array(opt_dists)
 

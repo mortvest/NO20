@@ -51,9 +51,23 @@
 
 \begin{document}
 \maketitle
+\section{Introduction}
+I sadly have to admit, that I misunderstood the assignment and therefore
+implemented the wrong algorithm. Instead of modifying the solution from the
+assignment 4 by adding the SR-1 update to estimate the value of Hessian, I have
+implemented Algorithm 6.2 from the book (SR1 Trust-Region Method on p. 146)
+and used my implementation of the sub-problem solver from assignment 4 (using
+Algorithm 4.3). I do not know how that happened, but I only noticed it 12 hours
+before the submission time and therefore did not have time to reimplement it.
+
 \section{The Setup}
 In this assignment, I have implemented the Trust Region algorithm, using
-quasi-newton method with SR1 update as presented in Algorithm 6.2 in the book.
+Quasi-Newton method with SR1 update as presented in Algorithm 6.2 in the book.
+
+\subsection{Solution to the sub-problem}
+In order to solve the sub-problem of finding $s$, I have used the same approach
+that I have chosen in the last assignment, namely the iterative solution to the
+Trust Region Sub-problem (Algorithm 4.3).
 
 \subsection{Parameters}
 I used following parameter values in my implementation. Some values were taken
@@ -61,12 +75,25 @@ from the literature, while others were determined empirically.
 \begin{itemize}
 \item I used an identity matrix for the $B_0$, since I could not find any
   information about the initial value of $B$ for the SR1 update in the book and
-  none of my ad-hoc experiments led to any noticeable improvement.
+  none of my ad-hoc experiments led to any noticeable improvement, so I have
+  chosen the simplest option.
 \item \textbf{Initial trust region radius ($\Delta_0 = 1$)}
 \item \textbf{Lower bound for the actual/predicted reduction ratio $\eta=0.01$}
 \item \textbf{Tolerance $\varepsilon = 10^{-7}$ on the gradient magnitude}
 \item \textbf{Lower bound on the update denominator $r=10^{-8}$}
+\item \textbf{Initial coefficient} $\lambda^{0}= -\lambda_1^e + 0.001$ for the
+  solution to the sub-problem of finding $s$.
 \end{itemize}
+
+
+\subsection{Problem with vanishing $s$}
+When minimizing the Log-Ellipsoid function, I have encountered a problem, where
+the norm of $s$ would get extremely small. I used a substantial amount of time
+on determining the cause of the problem but to no avail. I have, however, found
+a solution for it. I could prevent it from happening by adding an additional
+test in the main loop that would terminate the execution if the value of
+$\Delta$ was getting below small threshold value $\varepsilon = 1e-7$.
+
 
 \section{Testing protocol}
 In order to test the effectiveness of my implementation, I came up with a
@@ -93,7 +120,7 @@ metrics and took the median.
 \begin{figure}[]
     \centering
     \includegraphics[width=0.7\textwidth]{plt_dist100.png}
-    \caption{Convergence plot with euclidean distance to the optimum on the y-axis(log scale)}
+    \caption{Convergence plot with euclidean distance to the optimum on the y-axis}
   \label{plt1}
 \end{figure}
 
@@ -101,7 +128,7 @@ metrics and took the median.
     \centering
     \includegraphics[width=0.7\textwidth]{plt_grad_norm100.png}
     \caption{Plot of the gradient magnitude as a function of number of
-      iterations (log scale)}
+      iterations}
   \label{plt2}
 \end{figure}
 
@@ -244,10 +271,12 @@ Finally, by following the same argumentation as in Step 3, we have:
 \subsection{}
 The consequence of this property of the Newton's Method is that application of
 invertible linear transformations would not in any way affect the performance of
-the optimizer. Than can influence my choice of testing protocol in the future.
+the optimizer. This proves that the Newton's methods is unaffected by the
+problem being poorly scaled (which was mentioned on p.27 in the book), since
+scaling can be described as an invertible linear transformation of the objective function.
 
 \section{Conclusion}
-I have implemented the Trust region algorithm using a SR1 estimate for the
+I have implemented the Trust Region algorithm using an SR1 estimate for the
 matrix $B$. The algorithm exhibits a similar performance to the trust region
 method from the previous method, although the efficiency is marginally worse.
 However, we have the benefits of the Quasi-Newton methods, where each step is
